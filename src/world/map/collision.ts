@@ -15,14 +15,14 @@ export const mapCollision = {
   },
 
   standable(x, z){
-    let y = 0;
+    let y = this.terrainY(x, z);
+    const N = this.near(x, z, x, z).slice();
     for (let k = 0; k < 10; k++){
       let raised = false;
-      const T = this._topSorted || this.boxes;
-      for (let i = 0; i < T.length; i++){
-        const b = T[i];
+      for (let i = 0; i < N.length; i++){
+        const b = N[i];
         if (x < b.x0 || x > b.x1 || z < b.z0 || z > b.z1) continue;
-        if (b.y1 - b.y0 > 8) continue;           /* never stand on perimeter walls */
+        if (b.y1 - b.y0 > 8) continue;           /* never stand on perimeter walls / tower blocks */
         if (b.y1 > y + .02 && b.y1 <= y + 1.2){ y = b.y1; raised = true; }
       }
       for (let i = 0; i < this.slopes.length; i++){
@@ -38,8 +38,9 @@ export const mapCollision = {
   },
 
   headBlocked(x, z, y, h){
-    for (let i = 0; i < this.boxes.length; i++){
-      const b = this.boxes[i];
+    const N = this.near(x, z, x, z);
+    for (let i = 0; i < N.length; i++){
+      const b = N[i];
       if (x < b.x0 || x > b.x1 || z < b.z0 || z > b.z1) continue;
       if (b.y1 > y + .18 && b.y0 < y + h) return true;
     }
@@ -49,7 +50,7 @@ export const mapCollision = {
   solidAt(x, z, y, h){ return this.headBlocked(x, z, y, h); },
 
   boxFree(x0, x1, z0, z1, y0, y1){
-    for (const b of this.boxes) if (b.x1 > x0 - .5 && b.x0 < x1 + .5 && b.z1 > z0 - .5 && b.z0 < z1 + .5 && b.y1 > y0 && b.y0 < y1) return false;
+    for (const b of this.near(x0 - .5, z0 - .5, x1 + .5, z1 + .5)) if (b.x1 > x0 - .5 && b.x0 < x1 + .5 && b.z1 > z0 - .5 && b.z0 < z1 + .5 && b.y1 > y0 && b.y0 < y1) return false;
     return true;
   },
 
@@ -58,12 +59,7 @@ export const mapCollision = {
   /* ray vs world -> {t,nx,ny,nz,mat} */
   ray(ox, oy, oz, dx, dy, dz, maxD){
     let bt = maxD, best = null, axis = 0, sign = 1;
-    const B = this.boxes;
-    for (let i = 0; i < B.length; i++){
-      const b = B[i];
-      if (b.x0 > ox + dx * maxD || b.x1 < ox || b.y0 > oy + dy * maxD || b.y1 < oy || b.z0 > oz + dz * maxD || b.z1 < oz){
-        /* cheap directional reject only valid for positive dirs; fall through to exact test */
-      }
+    this.alongRay(ox, oz, dx, dz, maxD, b => {
       const t = rayAABB(ox, oy, oz, dx, dy, dz, b, bt);
       if (t >= 0 && t < bt){
         bt = t; best = b;
@@ -75,9 +71,13 @@ export const mapCollision = {
         else if (ex <= ez){ axis = 0; sign = px < (b.x0 + b.x1) / 2 ? -1 : 1; }
         else { axis = 2; sign = pz < (b.z0 + b.z1) / 2 ? -1 : 1; }
       }
-    }
+      return bt;
+    });
+    /* terrain */
+    const tt = this.terrainRay(ox, oy, oz, dx, dy, dz, bt);
+    if (tt >= 0 && tt < bt){ bt = tt; best = { mat: 'ground', terrain: 1 }; axis = 1; sign = 1; }
     /* ramps: march the ray and compare against surface height */
-    const step = .28, lim = Math.min(bt, 70);
+    const step = .28, lim = this.slopes.length ? Math.min(bt, 70) : 0;
     let ph = oy;
     for (let d = step; d < lim; d += step){
       const px = ox + dx * d, py = oy + dy * d, pz = oz + dz * d;
@@ -102,10 +102,10 @@ export const mapCollision = {
   },
 
   /* Ground query: only surfaces the actor is actually near (no teleport-up onto
-   overhead ramps, no standing on 14m perimeter walls, floor is always y=0). */
+   overhead ramps, no standing on 14m perimeter walls); the floor is the terrain (y=0 in the arena). */
   groundAt: function (x, z, y, step){
-  let g = 0;
-  const B = this.boxes, st = step == null ? .55 : step;
+  let g = this.terrainY(x, z);
+  const st = step == null ? .55 : step;
   for (let i = 0; i < this.slopes.length; i++){
     const s = this.slopes[i];
     if (x < s.x0 || x > s.x1 || z < s.z0 || z > s.z1) continue;
@@ -113,6 +113,7 @@ export const mapCollision = {
     const h = lerp(s.h0, s.h1, clamp(t, 0, 1));
     if (h <= y + st && h > g) g = h;
   }
+  const B = this.near(x, z, x, z);
   for (let i = 0; i < B.length; i++){
     const b = B[i];
     if (x < b.x0 || x > b.x1 || z < b.z0 || z > b.z1) continue;

@@ -16,16 +16,19 @@ import { Models } from './assets/models';
 import { installTelemetry, track } from './dev/telemetry';
 import { applyQuality } from './render/quality';
 import { UI } from './ui/index';
+import { Lobby } from './game/lobby';
 import { Combat } from './combat/index';
 import { Menu } from './ui/menuScene';
 import { Wep } from './weapons/weaponController';
 import { MAP } from './world/map/index';
+import { Heightmaps } from './world/city/heightmaps';
 
 const Boot = {
   steps: [
     ['ALLOCATING RENDER TARGET...', () => { }],
     ['COMPILING PROCEDURAL TEXTURES...', () => { MAT.init(); }],
     ['FORGING WEAPON GEOMETRY...', () => { FX.init(); }],
+    ['READING HEIGHTMAPS...', () => Heightmaps.load()],
     ['LOADING OPERATORS & ARMS...', () => Models.load((d, n) => { $('bootStat').textContent = 'LOADING OPERATORS & ARMS... ' + d + '/' + n; })],
     ['GENERATING ARENA SEED...', () => { Input.init(); UI.init(); UI.boot(); Menu.start(makeSeed()); }],
     ['LINKING P2P TRANSPORT...', () => { applyQuality(Save.data.settings.quality); Net.setStatus(); }],
@@ -124,7 +127,7 @@ function boot(){
 
 /* dev-only console/test handle; stripped from production builds */
 if (import.meta.env.DEV){
-  (window as any).__rs = { ctx, Game, Player, MAP, Wep, Combat, Input, Net, Models, BABYLON };
+  (window as any).__rs = { ctx, Game, Player, MAP, Wep, Combat, Input, Net, Models, BABYLON, Lobby, UI };
   installTelemetry(() => (window as any).__rs);
 }
 

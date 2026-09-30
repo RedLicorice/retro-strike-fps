@@ -32,7 +32,7 @@ export const netProtocol = {
 
   act(kind, data){ if (this.online && !this.isHost) this.send(this.peers[0], { k: 'act', t: kind, v: data }); },
 
-  lobbySync(){ if (this.online && this.isHost) this.broadcast({ k: 'lobby', slots: Lobby.slots.map(s => ({ n: s.name, t: s.type, tm: s.team, lv: s.lv })), seed: Lobby.seed, mode: Lobby.mode, limit: Lobby.limit }); },
+  lobbySync(){ if (this.online && this.isHost) this.broadcast({ k: 'lobby', slots: Lobby.slots.map(s => ({ n: s.name, t: s.type, tm: s.team, lv: s.lv })), seed: Lobby.seed, mode: Lobby.mode, map: Lobby.map, limit: Lobby.limit }); },
 
   /* ---- receive ---- */
   onMsg(peer, raw){
@@ -48,8 +48,8 @@ export const netProtocol = {
         }
         break;
       case 'welcome':
-        this.myId = m.id; Lobby.seed = m.seed; Lobby.mode = m.mode; Lobby.limit = m.limit;
-        Game.setup({ mode: m.mode, seed: m.seed, bots: 0, limit: m.limit, loadout: Save.data.loadout, name: Save.data.name, team: m.team });
+        this.myId = m.id; Lobby.seed = m.seed; Lobby.mode = m.mode; Lobby.limit = m.limit; Lobby.map = m.map || 'arena';
+        Game.setup({ mode: m.mode, map: Lobby.map, seed: m.seed, bots: 0, limit: m.limit, loadout: Save.data.loadout, name: Save.data.name, team: m.team });
         Game.isAuthority = false;
         Game.local.id = m.id; Player.id = m.id;
         UI.toast('JOINING ' + (m.hostName || 'HOST') + "'S ARENA", 'g');
@@ -103,15 +103,16 @@ export const netProtocol = {
       case 'lobby':
         if (m.id) this.myId = m.id;
         Lobby.slots = m.slots.map(s => ({ type: s.t, name: s.n, team: s.tm, lv: s.lv }));
-        Lobby.seed = m.seed; Lobby.mode = m.mode; Lobby.limit = m.limit || Lobby.limit;
+        Lobby.seed = m.seed; Lobby.mode = m.mode; Lobby.limit = m.limit || Lobby.limit; Lobby.map = m.map || 'arena';
         if (Game.state !== 'play'){
           vis('menu', false); vis('lobby', true);
-          if (MAP.seed !== Lobby.seed) UI.newArena(Lobby.seed);
+          const lm = $('lbMap') as HTMLSelectElement; if (lm) lm.value = Lobby.map;
+          if (MAP.seed !== Lobby.seed || MAP.mapId !== Lobby.map) UI.newArena(Lobby.seed);
           UI.buildSlots(); UI.previewDraw();
         }
         break;
-      case 'start': Lobby.seed = m.seed; Lobby.mode = m.mode; Lobby.limit = m.limit;
-        Game.setup({ mode: m.mode, seed: m.seed, bots: 0, limit: m.limit, loadout: Save.data.loadout, name: Save.data.name, team: m.team });
+      case 'start': Lobby.seed = m.seed; Lobby.mode = m.mode; Lobby.limit = m.limit; Lobby.map = m.map || 'arena';
+        Game.setup({ mode: m.mode, map: Lobby.map, seed: m.seed, bots: 0, limit: m.limit, loadout: Save.data.loadout, name: Save.data.name, team: m.team });
         Game.isAuthority = false; break;
       /* ---- client-side presentation ---- */
       case 'snap': this.applySnap(m); break;

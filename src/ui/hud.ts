@@ -116,7 +116,7 @@ export const uiHud = {
       if (a.isLocal || !a.alive) continue;
       const d = v3len(a.pos.x - Player.pos.x, 0, a.pos.z - Player.pos.z);
       if (d > range) continue;
-      const friendly = !Game.ff && a.team === Player.team;
+      const friendly = Game.mode !== 'ffa' && a.team === Player.team;
       blip(a.pos.x, a.pos.z, friendly ? '#4b93d8' : '#e0473c', 3.2);
     }
     if (Game.mode === 'horde') for (const m of Game.monsters) if (m.alive && v3len(m.pos.x - Player.pos.x, 0, m.pos.z - Player.pos.z) < range) blip(m.pos.x, m.pos.z, '#c02028', 2.6);

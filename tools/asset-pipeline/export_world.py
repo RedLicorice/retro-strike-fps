@@ -32,6 +32,21 @@ for e in spec:
     mn = Vector((min(v.x for v in vs), min(v.y for v in vs), min(v.z for v in vs)))
     mx = Vector((max(v.x for v in vs), max(v.y for v in vs), max(v.z for v in vs)))
     M = Matrix.Translation(-Vector(((mn.x + mx.x) / 2, (mn.y + mx.y) / 2, mn.z)))
+    if e.get('align'):
+        # buildings authored at an angle: rotate about Z to the minimum-area footprint rectangle
+        best = (1e18, 0.0)
+        for k in range(180):
+            a = math.radians(k * .5); c, s_ = math.cos(a), math.sin(a)
+            xs = [v.x * c - v.y * s_ for v in vs]; ys = [v.x * s_ + v.y * c for v in vs]
+            area = (max(xs) - min(xs)) * (max(ys) - min(ys))
+            if area < best[0] - 1e-6: best = (area, a)
+        if best[1]:
+            obj.data.transform(Matrix.Rotation(best[1], 4, 'Z')); obj.data.update()
+            vs = [v.co for v in obj.data.vertices]
+            mn = Vector((min(v.x for v in vs), min(v.y for v in vs), min(v.z for v in vs)))
+            mx = Vector((max(v.x for v in vs), max(v.y for v in vs), max(v.z for v in vs)))
+            M = Matrix.Translation(-Vector(((mn.x + mx.x) / 2, (mn.y + mx.y) / 2, mn.z)))
+            print('ALIGN', e['id'], round(math.degrees(best[1]), 1), 'deg')
     if e.get('longX') and (mx.y - mn.y) > (mx.x - mn.x):          # long axis onto X (Blender X -> glTF/Babylon X)
         M = Matrix.Rotation(math.pi / 2, 4, 'Z') @ M
     obj.data.transform(M); obj.data.update()

@@ -6,13 +6,14 @@ import { PRIMARY_IDS } from '../data/weapons';
 import { FX } from '../fx/fx';
 import { Game } from '../game/index';
 import { MAP } from '../world/map/index';
+import { Lobby } from '../game/lobby';
 import { moveEntity } from '../world/physics';
 
 export const Menu = {
   t: 0, demos: [], active: false,
-  start(seed){
+  start(seed, map?: string){
     this.active = true; this.t = rnd(40);
-    MAP.generate(seed || Save.data.seed || makeSeed());
+    MAP.generate(seed || Save.data.seed || makeSeed(), map || Lobby.map);
     MAP.build();
     Game.lightSetup();
     Save.data.seed = MAP.seed;

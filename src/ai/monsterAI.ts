@@ -50,6 +50,6 @@ export const MonsterAI = {
   }
 };
 
-export function n0(m){ const b = MAP.boxes; for (let i = 0; i < b.length; i++){ const q = b[i];
+export function n0(m){ const b = MAP.near(m.pos.x - .6, m.pos.z - .6, m.pos.x + .6, m.pos.z + .6); for (let i = 0; i < b.length; i++){ const q = b[i];
   if (q.x1 < m.pos.x - .6 || q.x0 > m.pos.x + .6 || q.z1 < m.pos.z - .6 || q.z0 > m.pos.z + .6) continue;
   if (q.y1 > m.pos.y + .1 && q.y1 < m.pos.y + 1.2) return true; } return false; }

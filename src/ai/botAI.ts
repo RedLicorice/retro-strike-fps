@@ -103,7 +103,7 @@ export const BotAI = {
         if (a.hp > a.maxHp * .82 || ai.coverT > 5.5){ ai.state = 'patrol'; ai.coverT = 0; ai.dest = null; }
       }
       if (!ai.dest || v3len(ai.dest.x - a.pos.x, 0, ai.dest.z - a.pos.z) < 1.6 || ai.repath <= 0 && !ai.path){
-        ai.dest = Game.mode === 'horde' ? this.hordePost(a) : MAP.randomOpen();
+        ai.dest = Game.mode === 'horde' ? this.hordePost(a) : MAP.half > 60 ? MAP.randomOpen(a.pos.x, a.pos.z, 70) : MAP.randomOpen();
         ai.path = MAP.findPath(a.pos.x, a.pos.z, ai.dest.x, ai.dest.z, 800); ai.pi = 1; ai.repath = 2.4 + rnd(1.6);
       }
       if (ai.path && ai.pi < ai.path.length){

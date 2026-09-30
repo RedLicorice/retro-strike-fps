@@ -44,7 +44,7 @@ export const mapNav = {
     return out;
   },
 
-  /* A* on nav grid */
+  /* A* on nav grid (binary heap; node budget scales with the map so city paths aren't cut short) */
   findPath(sx, sz, tx, tz, maxNodes){
     const nv = this.nav; if (!nv) return null;
     let a = this.navIdx(sx, sz), b = this.navIdx(tx, tz);
@@ -52,36 +52,36 @@ export const mapNav = {
     if (!nv.open[a]) a = this.nearestOpen(a); if (!nv.open[b]) b = this.nearestOpen(b);
     if (a < 0 || b < 0 || a === b) return null;
     const n = nv.n, N = n * n;
-    if (!this._pf || this._pf.length !== N){
-      this._pf = { g: new Float32Array(N), f: new Float32Array(N), from: new Int32Array(N), cl: new Uint8Array(N), op: new Uint8Array(N) };
+    if (!this._pf || this._pf.g.length !== N){
+      this._pf = { g: new Float32Array(N), from: new Int32Array(N), cl: new Uint8Array(N), heap: new Int32Array(N * 2), hf: new Float32Array(N * 2) };
     }
-    const P = this._pf; P.g.fill(1e9); P.from.fill(-1); P.cl.fill(0); P.op.fill(0);
-    const hp = k => { const i = k % n, j = (k / n) | 0, bi = b % n, bj = (b / n) | 0; return Math.hypot(i - bi, j - bj) * nv.res * .9; };
-    const openList = [a]; P.g[a] = 0; P.f[a] = hp(a); P.op[a] = 1;
-    let guard = maxNodes || 900;
-    while (openList.length && guard-- > 0){
-      let bi = 0; for (let i = 1; i < openList.length; i++) if (openList[i] < openList[bi]) bi = i;
-      /* pick lowest f */
-      let bestI = 0, bestF = 1e9;
-      for (let i = 0; i < openList.length; i++){ const f = P.f[openList[i]]; if (f < bestF){ bestF = f; bestI = i; } }
-      const cur = openList.splice(bestI, 1)[0]; P.op[cur] = 0;
+    const P = this._pf; P.g.fill(1e9); P.from.fill(-1); P.cl.fill(0);
+    const bi = b % n, bj = (b / n) | 0;
+    const hp = k => { const di = Math.abs(k % n - bi), dj = Math.abs(((k / n) | 0) - bj); return (Math.max(di, dj) + .414 * Math.min(di, dj)) * nv.res; };
+    /* min-heap of (f, node); stale entries are skipped via the closed set */
+    const H = P.heap, F = P.hf; let hn = 0;
+    const push = (k, f) => { let i = hn++; while (i > 0){ const p = (i - 1) >> 1; if (F[p] <= f) break; H[i] = H[p]; F[i] = F[p]; i = p; } H[i] = k; F[i] = f; };
+    const pop = () => { const top = H[0], lk = H[--hn], lf = F[hn]; let i = 0;
+      for (;;){ let c = 2 * i + 1; if (c >= hn) break; if (c + 1 < hn && F[c + 1] < F[c]) c++; if (F[c] >= lf) break; H[i] = H[c]; F[i] = F[c]; i = c; }
+      H[i] = lk; F[i] = lf; return top; };
+    P.g[a] = 0; push(a, hp(a));
+    let guard = Math.round((maxNodes || 900) * Math.max(1, (this.half / 33) * (this.half / 33) * .25));
+    while (hn && guard-- > 0){
+      const cur = pop();
+      if (P.cl[cur]) continue;
       if (cur === b) break;
       P.cl[cur] = 1;
       const nb = this.navNeighbors(cur);
       for (let i = 0; i < nb.length; i++){
         const nk = nb[i]; if (P.cl[nk]) continue;
         const i0 = cur % n, j0 = (cur / n) | 0, i1 = nk % n, j1 = (nk / n) | 0;
-        const cost = (i0 === i1 || j0 === j1 ? 1 : 1.414) * nv.res;
-        const ng = P.g[cur] + cost;
-        if (ng < P.g[nk]){
-          P.g[nk] = ng; P.f[nk] = ng + hp(nk); P.from[nk] = cur;
-          if (!P.op[nk]){ P.op[nk] = 1; openList.push(nk); }
-        }
+        const ng = P.g[cur] + (i0 === i1 || j0 === j1 ? 1 : 1.414) * nv.res;
+        if (ng < P.g[nk]){ P.g[nk] = ng; P.from[nk] = cur; if (hn < H.length) push(nk, ng + hp(nk)); }
       }
     }
     if (P.from[b] < 0 && b !== a) return null;
     const path = []; let c = b;
-    while (c >= 0 && c !== a){ path.push(this.navPos(c)); c = P.from[c]; if (path.length > 90) break; }
+    while (c >= 0 && c !== a){ path.push(this.navPos(c)); c = P.from[c]; if (path.length > 400) break; }
     path.push(this.navPos(a)); path.reverse();
     return path;
   },
@@ -96,10 +96,13 @@ export const mapNav = {
     return k;
   },
 
-  randomOpen(){
+  /* random walkable point; with (x, z, r) it stays within r metres of x/z (large maps: keep bot trips local) */
+  randomOpen(x?: number, z?: number, r?: number){
+    const local = x !== undefined && r !== undefined;
     for (let t = 0; t < 40; t++){
-      const x = (Math.random() - .5) * this.half * 1.7, z = (Math.random() - .5) * this.half * 1.7;
-      const k = this.navIdx(x, z);
+      const px = local ? x + (Math.random() - .5) * 2 * r : (Math.random() - .5) * this.half * 1.7;
+      const pz = local ? z + (Math.random() - .5) * 2 * r : (Math.random() - .5) * this.half * 1.7;
+      const k = this.navIdx(px, pz);
       if (k >= 0 && this.nav.open[k]) return this.navPos(k);
     }
     return this.spawns[rndi(this.spawns.length)] || { x: 0, z: 0, y: 0 };

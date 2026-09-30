@@ -19,6 +19,8 @@ export const gameState = {
   fires: [],
 
   sun: null,
+  mapId: 'arena',
+  _sunObs: null,
 
   shadow: null,
 

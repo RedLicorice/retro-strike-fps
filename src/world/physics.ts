@@ -13,8 +13,11 @@ export function worldMove(p, v, r, h, dt){
   const n = Math.max(1, Math.min(8, Math.ceil(dist / .22)));
   const sdt = dt / n;
   let grounded = false, landV = 0;
+  /* candidate boxes for the whole step, fetched once from the spatial grid */
+  const sp = Math.hypot(v.x, v.z) * dt + r + .6;
+  const B = MAP.near(p.x - sp, p.z - sp, p.x + sp, p.z + sp).slice();
   const blocked = (x, y, z) => {
-    const B = MAP.boxes, y1 = y + h;
+    const y1 = y + h;
     for (let i = 0; i < B.length; i++){
       const b = B[i];
       if (b.x1 < x - r || b.x0 > x + r || b.z1 < z - r || b.z0 > z + r) continue;
@@ -68,11 +71,13 @@ export function worldMove(p, v, r, h, dt){
       if (!grounded) landV = v.y;
       p.y = g; v.y = 0; grounded = true;
     }
-    if (p.y < -0.2){ p.y = Math.max(0, MAP.groundAt(p.x, p.z, 4, 8)); v.y = 0; grounded = true; }
+    const floor = MAP.terrainY(p.x, p.z);
+    if (p.y < floor - .2){ p.y = Math.max(floor, MAP.groundAt(p.x, p.z, floor + 4, 8)); v.y = 0; grounded = true; }
   }
   p.x = clamp(p.x, -lim, lim);
   p.z = clamp(p.z, -lim, lim);
-  if (p.y < 0){ p.y = 0; v.y = 0; grounded = true; }
+  const fl = MAP.terrainY(p.x, p.z);
+  if (p.y < fl){ p.y = fl; v.y = 0; grounded = true; }
   return { grounded: grounded, landV: landV };
 }
 

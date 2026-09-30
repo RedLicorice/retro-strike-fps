@@ -41,6 +41,9 @@ export const MAT = {
     this.std('crate',    TX.mk('t_crate', 512, TX.crate(), false), .07, null, 1);
     this.std('floor',    city('road_asphalt_cracked'), .06);
     this.std('sand',     city('ground_gravel_lot'), .03);
+    this.std('road',     city('road_asphalt'), .05);
+    this.std('walk',     city('ground_sidewalk'), .04);
+    this.std('pavers',   city('ground_pavers_grey'), .04);
     this.std('hazard',   TX.mk('t_haz', 256, TX.hazard(), false), .16, null, 1);
     this.flat('trim', [.18, .19, .16]);
     this.flat('glass', [.28, .38, .42], [.08, .14, .16], .65);

@@ -30,6 +30,21 @@ export const mapMesh = {
     sunM.position.set(92, 38, 70); sunM.lookAt(V3(0, 8, 0));
     sunM.material = MAT.m.sunDisc; sunM.isPickable = false; sunM.applyFog = false; sunM.parent = root; sunM.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
+    if (this.terrain) this.buildCityGround(root);
+    else this.buildArenaGround(root, size);
+
+    this.buildParts(root);
+
+    /* prop models (containers, crates, barriers, sandbags, street lights, buildings, skyline) */
+    for (const m of this.buildProps(root)) this.meshes.push(m);
+    this.buildLamps(root);
+    this.buildDecals(root);
+
+    this.bakeMinimap();
+    return root;
+  },
+
+  buildArenaGround(root, size){
     /* distant hills (silhouette ring so the horizon isn't a void) */
     const hills = [];
     for (let i = 0; i < 18; i++){
@@ -49,9 +64,18 @@ export const mapMesh = {
     const apron = BABYLON.MeshBuilder.CreateGround('apron', { width: size + 90, height: size + 90, subdivisions: 1 }, ctx.scene);
     apron.position.y = -.06; uvScale(apron, 3.4); apron.material = MAT.m.sand; apron.parent = root; apron.isPickable = false; apron.receiveShadows = true;
 
-    /* parts -> merged meshes per material */
-    for (const mat in this.parts){
-      const list = this.parts[mat]; if (!list.length) continue;
+  },
+
+  /* parts -> merged meshes per material; on big maps also per 64 m tile so culling can skip far chunks */
+  buildParts(root){
+    const tile = this.terrain ? 64 : 0;
+    const groups: Record<string, any[]> = {};
+    for (const mat in this.parts) for (const o of this.parts[mat]){
+      const key = tile ? mat + '|' + Math.floor(o.p[0] / tile) + ',' + Math.floor(o.p[2] / tile) : mat;
+      (groups[key] || (groups[key] = [])).push(o);
+    }
+    for (const key in groups){
+      const mat = key.split('|')[0], list = groups[key];
       const ms = [];
       for (const o of list){
         let m;
@@ -83,9 +107,9 @@ export const mapMesh = {
       }
     }
 
-    /* prop models (containers, crates, barriers, sandbags, street lights, skyline) */
-    for (const m of this.buildProps(root)) this.meshes.push(m);
+  },
 
+  buildLamps(root){
     /* lamp fittings + light pools (street lights come from the props; their pools sit under the head) */
     const postParts = [];
     let head = 0;
@@ -97,7 +121,7 @@ export const mapMesh = {
         h.position.set(L.x, L.y, L.z); h.material = MAT.m.lamp; postParts.push(h);
       }
       const pool = BABYLON.MeshBuilder.CreateGround('pool', { width: 7, height: 7, subdivisions: 1 }, ctx.scene);
-      pool.position.set(L.post ? L.px : L.x, (L.post ? 0.02 : L.y - 2.6), L.post ? L.pz : L.z);
+      pool.position.set(L.post ? L.px : L.x, (L.post ? this.standable(L.px, L.pz) + .07 : L.y - 2.6), L.post ? L.pz : L.z);
       if (!MAT.m.pool){
         const pm = new BABYLON.StandardMaterial('pool', ctx.scene);
         const t = TX.mk('t_pool', 128, (x, s) => { const g = x.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
@@ -114,6 +138,9 @@ export const mapMesh = {
       if (mm){ mm.material = MAT.m.metal; mm.isPickable = false; mm.parent = root; this.meshes.push(mm); }
     }
 
+  },
+
+  buildDecals(root){
     /* ground decals */
     const dparts = [];
     for (const d of this.decals){
@@ -126,9 +153,61 @@ export const mapMesh = {
       const dm = BABYLON.Mesh.MergeMeshes(dparts, true, true, undefined, false, false);
       if (dm){ dm.material = MAT.m.fxDecal; dm.isPickable = false; dm.parent = root; dm.renderingGroupId = 0; }
     }
+  },
 
-    this.bakeMinimap();
-    return root;
+  /* ---------------- city ground: terrain tiles, roads + sidewalks draped on it, paved squares ---------------- */
+  buildCityGround(root){
+    const T = this.terrain, n = T.n, CH = 16;
+    const mk = (name, pos, idx, uv, mat) => {
+      const m = new BABYLON.Mesh(name, ctx.scene), vd = new BABYLON.VertexData(), nrm = [];
+      BABYLON.VertexData.ComputeNormals(pos, idx, nrm);
+      vd.positions = pos; vd.indices = idx; vd.normals = nrm; vd.uvs = uv; vd.applyToMesh(m);
+      m.material = mat; m.parent = root; m.isPickable = false; m.receiveShadows = true; m.freezeWorldMatrix();
+      this.meshes.push(m); return m;
+    };
+    /* terrain in 64 m tiles (16 x 16 quads) */
+    for (let tj = 0; tj < n - 1; tj += CH) for (let ti = 0; ti < n - 1; ti += CH){
+      const pos = [], idx = [], uv = [], ni = Math.min(CH, n - 1 - ti), nj = Math.min(CH, n - 1 - tj);
+      for (let j = 0; j <= nj; j++) for (let i = 0; i <= ni; i++){
+        const x = -T.o + (ti + i) * T.res, z = -T.o + (tj + j) * T.res;
+        pos.push(x, T.h[(tj + j) * n + ti + i], z); uv.push(x / 5, z / 5);
+      }
+      for (let j = 0; j < nj; j++) for (let i = 0; i < ni; i++){
+        const a = j * (ni + 1) + i, b = a + 1, c = a + ni + 1, d = c + 1;
+        idx.push(a, b, c, b, d, c);
+      }
+      mk('terrain', pos, idx, uv, MAT.m.sand);
+    }
+    /* a strip following the terrain: centre line (x0,z0)->(x1,z1), lateral offsets o0..o1, raised by lift */
+    const strip = (x0, z0, x1, z1, o0, o1, lift, mat, name) => {
+      const L = Math.hypot(x1 - x0, z1 - z0), dx = (x1 - x0) / L, dz = (z1 - z0) / L, px = -dz, pz = dx;
+      const seg = 64, step = 4;
+      for (let s0 = 0; s0 < L; s0 += seg){
+        const pos = [], idx = [], uv = [];
+        const s1 = Math.min(L, s0 + seg), k = Math.ceil((s1 - s0) / step);
+        for (let i = 0; i <= k; i++){
+          const s = s0 + (s1 - s0) * i / k, cx = x0 + dx * s, cz = z0 + dz * s;
+          for (const o of [o0, o1]){
+            const x = cx + px * o, z = cz + pz * o;
+            pos.push(x, this.terrainY(x, z) + lift, z); uv.push(o / 4, s / 4);
+          }
+        }
+        for (let i = 0; i < k; i++){ const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+        mk(name, pos, idx, uv, mat);
+      }
+    };
+    for (const r of this.roads){
+      const hw = r.w / 2, walk = 2.2;
+      strip(r.x0, r.z0, r.x1, r.z1, -hw + walk, hw - walk, r.x0 === r.x1 ? .06 : .05, MAT.m.road, 'road');
+      strip(r.x0, r.z0, r.x1, r.z1, -hw, -hw + walk, .1, MAT.m.walk, 'walk');
+      strip(r.x0, r.z0, r.x1, r.z1, hw - walk, hw, .1, MAT.m.walk, 'walk');
+    }
+    for (const p of this.pavers){
+      const g = BABYLON.MeshBuilder.CreateGround('pavers', { width: p.x1 - p.x0, height: p.z1 - p.z0 }, ctx.scene);
+      g.position.set((p.x0 + p.x1) / 2, p.y + .05, (p.z0 + p.z1) / 2); uvScale(g, 3);
+      g.material = MAT.m.pavers; g.parent = root; g.isPickable = false; g.receiveShadows = true; g.freezeWorldMatrix();
+      this.meshes.push(g);
+    }
   },
 
   dispose(){

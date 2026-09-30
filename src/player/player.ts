@@ -152,7 +152,7 @@ export const Player = {
       p.copyFrom(this.lastGood); this.vel.set(0, 0, 0);
     } else this.lastGood.copyFrom(p);
     this.onGround = mv.grounded;
-    if (p.y < -1 || Math.abs(p.x) > MAP.half + 1.5 || Math.abs(p.z) > MAP.half + 1.5){
+    if (p.y < MAP.terrainY(p.x, p.z) - 1 || Math.abs(p.x) > MAP.half + 1.5 || Math.abs(p.z) > MAP.half + 1.5){
       track('killplane-recovery', { pos: [p.x, p.y, p.z].map(v => +v.toFixed(2)), vel: [this.vel.x, this.vel.y, this.vel.z].map(v => +v.toFixed(2)), seed: MAP.seed });
       const s = MAP.spawns[0] || { x: 0, z: 0, y: 0 };
       this.reset(s, this.yaw);

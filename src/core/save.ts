@@ -14,7 +14,8 @@ export const Save = {
       character: DEFAULT_CHARACTER,
       stats: { kills: 0, deaths: 0, hs: 0, dmg: 0, shots: 0, hits: 0, score: 0, best: 0, matches: 0, wins: 0, time: 0, wave: 0 },
       wpn: {},
-      seed: ''
+      seed: '',
+      map: 'arena'
     };
   },
   load(){

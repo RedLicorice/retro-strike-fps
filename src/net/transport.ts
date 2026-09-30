@@ -106,9 +106,9 @@ export const netTransport = {
     const id = 'p' + (peer.idx + 1);
     peer.actorId = id;
     if (Game.state === 'play'){                       /* join in progress */
-      this.send(peer, { k: 'welcome', seed: Game.seed, mode: Game.mode, id: id, team: Game.mode === 'tdm' ? 1 : 0, limit: Game.killLimit, hostName: Save.data.name });
+      this.send(peer, { k: 'welcome', seed: Game.seed, mode: Game.mode, map: Game.mapId, id: id, team: Game.mode === 'tdm' ? 1 : 0, limit: Game.killLimit, hostName: Save.data.name });
     } else {                                          /* sit in the lobby until the host deploys */
-      this.send(peer, { k: 'lobby', slots: L.slots.map(s => ({ n: s.name, t: s.type, tm: s.team, lv: s.lv })), seed: L.seed, mode: L.mode, limit: L.limit, id: id });
+      this.send(peer, { k: 'lobby', slots: L.slots.map(s => ({ n: s.name, t: s.type, tm: s.team, lv: s.lv })), seed: L.seed, mode: L.mode, map: L.map, limit: L.limit, id: id });
     }
   },
 

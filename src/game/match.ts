@@ -1,4 +1,5 @@
 import { Outlines } from '../render/outlines';
+import { applyFog } from '../render/fog';
 import { now } from '../core/dom';
 import { SHIELD_IDLE } from '../player/constants';
 import { CHARACTERS } from '../data/characters';
@@ -32,14 +33,15 @@ export const gameMatch = {
   },
 
   setup(opts){
-    /* opts: {mode, seed, bots, skill, limit, loadout, name, team} */
+    /* opts: {mode, map, seed, bots, skill, limit, loadout, name, team} */
     this.mode = opts.mode || 'ffa';
     this.ff = this.mode === 'ffa';
     this.state = 'play';
     Menu.clear();
     UI.enterGame();
     try {
-    this.seed = MAP.generate(opts.seed || makeSeed());
+    this.mapId = opts.map || 'arena';
+    this.seed = MAP.generate(opts.seed || makeSeed(), this.mapId);
     MAP.build();
     this.clear();
     this.score = [0, 0]; this.limit = opts.limit || 25; this.killLimit = this.limit;
@@ -104,6 +106,15 @@ export const gameMatch = {
     sun.diffuse = new BABYLON.Color3(1, .78, .48);
     sun.specular = new BABYLON.Color3(.85, .7, .45);
     this.sun = sun;
+    /* big maps: a fixed-size shadow box that follows the camera instead of stretching over the whole city */
+    if (this._sunObs){ ctx.scene.onBeforeRenderObservable.remove(this._sunObs); this._sunObs = null; }
+    if (MAP.terrain){
+      sun.autoUpdateExtends = false; sun.shadowFrustumSize = 120; sun.shadowMinZ = 1; sun.shadowMaxZ = 320;
+      this._sunObs = ctx.scene.onBeforeRenderObservable.add(() => {
+        const c = ctx.cam.position, d = sun.direction;
+        sun.position.set(c.x - d.x * 150, c.y - d.y * 150, c.z - d.z * 150);
+      });
+    }
     if (this.shadow){ this.shadow.dispose(); this.shadow = null; }
     if (ctx.QUALITY !== 'low'){
       const sg = new BABYLON.ShadowGenerator(ctx.QUALITY === 'high' ? 1536 : 768, sun);
@@ -114,10 +125,7 @@ export const gameMatch = {
       this.shadow = sg;
       for (const m of MAP.meshes) try { sg.addShadowCaster(m); } catch (e){ break; }
     }
-    ctx.scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
-    ctx.scene.fogStart = ctx.QUALITY === 'low' ? 22 : 32;
-    ctx.scene.fogEnd = ctx.QUALITY === 'low' ? 95 : 140;
-    ctx.scene.fogColor = new BABYLON.Color3(.64, .50, .34);
+    applyFog();
     ctx.scene.clearColor = new BABYLON.Color4(.58, .44, .28, 1);
     ctx.scene.ambientColor = new BABYLON.Color3(.5, .44, .36);
     GFX.init();

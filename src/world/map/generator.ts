@@ -2,9 +2,17 @@ import { TAU, makeSeed, rng, sHash } from '../../core/math';
 
 export const mapGenerator = {
   /* ---------------- generation ---------------- */
-  generate(seedStr){
+  /* mapId: 'arena' (default) | 'city' (procedural terrain) | 'city:<heightmap name>' */
+  generate(seedStr, mapId?: string){
     this.seed = (seedStr || makeSeed()).toUpperCase().slice(0, 16);
+    this.mapId = mapId || 'arena';
     this.reset();
+    if (this.mapId.startsWith('city')){
+      this.generateCity(rng(sHash(this.seed + '/' + this.mapId)), this.mapId.split(':')[1] || null);
+      this._topSorted = this.boxes.slice().sort((a, b) => a.y1 - b.y1);
+      this.buildNav();
+      return this.seed;
+    }
     const R = rng(sHash(this.seed));
     const W = this.W, H = this.H, C = this.CELL;
     this.half = W * C / 2;

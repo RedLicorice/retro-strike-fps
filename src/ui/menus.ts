@@ -12,6 +12,7 @@ import { applyQuality } from '../render/quality';
 import { UI } from './index';
 import { Menu } from './menuScene';
 import { MAP } from '../world/map/index';
+import { Heightmaps } from '../world/city/heightmaps';
 
 /* ------------------------------ E4. UI WIRING ------------------------------ */
 export const uiMenus = {
@@ -39,6 +40,7 @@ export const uiMenus = {
       $$('.tab').forEach(o => o.classList.remove('on')); t.classList.add('on');
       this.slotSel = +t.dataset.slot; this.buildWeapons(); SFX.ui();
     }));
+    this.buildMaps();
     this.buildWeapons(); this.refreshStats(); this.bindSettings(); this.bindButtons();
     /* scroll reveals */
     const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); }), { threshold: .08 });
@@ -46,6 +48,15 @@ export const uiMenus = {
     setTimeout(() => $$('[data-rev]').forEach(el => el.classList.add('in')), 900);
     /* marquee */
     $('marqTxt').textContent = $('marqTxt').textContent.repeat(2);
+  },
+
+  /* lobby map picker: the arena, a procedural city, and one city per heightmap image in public/heightmaps */
+  buildMaps(){
+    const opts = [['arena', 'CQB ARENA (66 m)'], ['city', 'CITY — PROCEDURAL (400 m)'], ...Heightmaps.list.map(n => ['city:' + n, 'CITY — ' + n.toUpperCase().replace(/[_-]/g, ' ') + ' (400 m)'])];
+    $('lbMap').innerHTML = opts.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('');
+    const saved = Save.data.map;
+    Lobby.map = opts.some(o => o[0] === saved) ? saved : 'arena';
+    $('lbMap').value = Lobby.map;
   },
 
   buildWeapons(){
@@ -150,7 +161,7 @@ export const uiMenus = {
     $('btnLobby').addEventListener('click', () => {
       Save.data.name = ($('inName').value || 'VIPER').toUpperCase();
       Lobby.init(Save.data.name, this.modeSel, ($('inSeed').value || makeSeed()).toUpperCase(), +$('inBots').value || 0, +$('inLimit').value || 25, +$('inSkill').value);
-      $('lbSeed').value = Lobby.seed; $('lbMode').value = Lobby.mode;
+      $('lbSeed').value = Lobby.seed; $('lbMode').value = Lobby.mode; $('lbMap').value = Lobby.map;
       vis('menu', false); vis('lobby', true);
       this.buildSlots(); this.previewDraw(); this.newArena(Lobby.seed); Net.setStatus();
     });
@@ -166,6 +177,7 @@ export const uiMenus = {
     });
     $('lbMode').addEventListener('change', e => { Lobby.mode = e.target.value; this.modeSel = e.target.value;
       $$('#modeList .mode').forEach(o => o.classList.toggle('sel', o.dataset.m === e.target.value)); this.buildSlots(); });
+    $('lbMap').addEventListener('change', e => { Lobby.map = e.target.value; Save.data.map = Lobby.map; Save.flush(); this.newArena(Lobby.seed || MAP.seed); Net.lobbySync(); });
     $('btnNewSeed').addEventListener('click', () => { Lobby.seed = ($('lbSeed').value || makeSeed()).toUpperCase(); this.newArena(Lobby.seed); Net.lobbySync(); });
     $('lbSeed').addEventListener('input', e => { Lobby.seed = e.target.value.toUpperCase(); });
     /* signalling */
@@ -266,11 +278,11 @@ export const uiMenus = {
     const bots = Lobby.slots && Lobby.slots.length ? Lobby.slots.filter(s => s.type === 'bot').length : (+$('inBots').value || 0);
     const team = Lobby.slots ? (Lobby.slots.find(s => s.me) || { team: 0 }).team : 0;
     Game.setup({
-      mode: mode, seed: seed, bots: bots, skill: Lobby.skill === undefined ? +$('inSkill').value : Lobby.skill,
+      mode: mode, map: Lobby.map, seed: seed, bots: bots, skill: Lobby.skill === undefined ? +$('inSkill').value : Lobby.skill,
       limit: +($('inLimit').value || Lobby.limit || 25), loadout: Save.data.loadout, name: Save.data.name, team: team
     });
     Lobby.seed = Game.seed;
-    if (Net.online && Net.isHost) Net.broadcast({ k: 'start', seed: Game.seed, mode: mode, limit: Game.killLimit, team: 1 });
+    if (Net.online && Net.isHost) Net.broadcast({ k: 'start', seed: Game.seed, mode: mode, map: Game.mapId, limit: Game.killLimit, team: 1 });
   },
 
   startFromLobby(){

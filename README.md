@@ -1,6 +1,6 @@
 # RetroStrike
 
-PS2-era procedural CQB arena FPS. Babylon.js + TypeScript, serverless WebRTC P2P (host-authoritative), bots fill empty slots.
+PS2-era FPS with a procedural CQB arena and a large procedural city. Babylon.js + TypeScript, serverless WebRTC P2P (host-authoritative), bots fill empty slots.
 
 ## Run
 
@@ -39,6 +39,23 @@ In dev builds, `window.__rs` exposes `{ ctx, Game, Player, MAP, Wep, Combat, Inp
 - **Weapons (15):** GLBs with grip at the origin, muzzle toward +Z, and `muzzle` / `sight` / `fore` marker nodes that drive ADS alignment, tracers and two-handed third-person holds. Stats come from the real guns (calibre, rate of fire, capacity, weight → mobility); see `src/data/weapons.ts`.
 - **Views:** first person, or third person over the shoulder (**V**, settings or touch **CAM**). Aiming down sights always uses first-person sights.
 
+### Maps
+
+Chosen in the lobby (**MAP**); the choice is synced to peers and remembered. Every map is generated from the seed, so a seed plus a map id rebuilds the same layout on every machine.
+
+- **CQB arena** (66 m): the original grid of containers, bunkers, towers, ruins and barricades.
+- **City** (400 m): a 7×7 street grid on a heightfield.
+  - **Buildings:** urban-pack towers, the panel blocks from the abandoned-house pack (scaled to real storey heights) and the shipyard warehouse. Their colliders are traced from each model's own roof footprint.
+  - **Walk-ins:** 2–4 procedural two-storey buildings with doors, windows and stairs.
+  - **Open ground:** plazas with barriers and sandbag nests, and container yards.
+  - **Streets:** street lights, barrier chicanes, dumped containers, bus stops and bollards.
+  - **Edge:** a brick fence encloses the city, with tower blocks and hills behind it.
+- **City from a heightmap:** put a grayscale PNG (black = low, white = high, any size) in `public/heightmaps/` and add its name to `public/heightmaps/index.json`. It appears in the lobby as another city. `valley.png` is included as an example.
+
+Large maps chunk their meshes per 64 m tile and push fog and the far plane out, so frustum and distance culling skip what you can't see. The sun's shadow box follows the camera.
+
+World props are exported from `assets/world` by `tools/asset-pipeline/export_world.py` (`world_spec.json`). Buildings authored at an angle are squared up on export (`align`).
+
 ### First-person arms
 
 `assets/hands` (820-tri arms rig with its own IK) is exported by `tools/asset-pipeline/export_hands.py` with three baked holds (`src/render/fpHands.ts`). It is **off** (`FP_HANDS_RIG` in `weaponController.ts`): the rig has no weapon-hold poses, and curling its fingers around a grip folds the low-poly hand mesh (`docs/screenshots/fp-hands-rig-attempt.png`). The viewmodel uses simple gloves until an arms rig with rifle/pistol holds is available.
@@ -55,7 +72,8 @@ To inspect models, run `npm run dev` and open `/viewer.html?char=swat&clip=run_f
 |---|---|
 | `core/` | math helpers, DOM helpers, save/persistence (localStorage), shared runtime `ctx` (engine/scene/camera/quality), domain `types`, `compose()` |
 | `data/` | static tables: weapons, throwables, bot names |
-| `world/map/` | `MAP`: arena generator (`generator`, `builders`), collision queries & LOS (`collision`), bot navigation grid (`nav`), Babylon mesh build (`mesh`), radar bake (`minimap`) |
+| `world/map/` | `MAP`: arena generator (`generator`, `builders`), collision queries & LOS (`collision`), spatial box index (`spatial`), heightfield (`terrain`), bot navigation grid (`nav`), prop models and building footprints (`props`), Babylon mesh build (`mesh`), radar bake (`minimap`) |
+| `world/city/` | city generator (`cityGen`) and heightmap images (`heightmaps`) |
 | `world/physics.ts` | substepped AABB mover shared by player, bots and monsters |
 | `player/` | local FPS controller (look, move, stance, slide, regen) + tuning constants |
 | `weapons/` | viewmodel, firing, reload, ADS, melee, throwing for the local player |
@@ -88,7 +106,7 @@ Standing up checks for headroom. From prone under a low ceiling you rise to a cr
 - **Armour**: 3 plates × 50 soak weapon and explosive damage before health (falls and burning skip them). They refill one after another (1.5 s each) after 4 s idle, meaning no damage taken or dealt and not moving.
 - **Outlines**: thin silhouette outlines, red for enemies and blue for allies, hidden behind walls.
 
-- **Spawns**: every spawn has full-height cover (1.9 m slabs placed during generation; spawns that can't be covered are dropped). Spawn selection avoids spawns an enemy can currently see, then prefers distance.
+- **Spawns**: in the arena, every spawn has full-height cover (1.9 m slabs placed during generation; spawns that can't be covered are dropped). Spawn selection avoids spawns an enemy can currently see, then prefers distance.
 - **Spawn protection**: `SPAWN_PROT` (3 s, `player/constants.ts`) of invulnerability after any (re)spawn. It ends early when you deal damage, and bots won't pick a protected target.
 - **Health regen**: kicks in 3 s after your last combat event (1.7 s when no enemy has line of sight to you).
 

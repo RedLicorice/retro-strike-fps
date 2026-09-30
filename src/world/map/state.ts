@@ -17,6 +17,13 @@ export const mapState = {
 
   seed: '--------',
 
+  /* 'arena' | 'city' | 'city:<heightmap>' */
+  mapId: 'arena',
+
+  /* city only: road centre lines { x0, z0, x1, z1, w } and paved squares { x0, z0, x1, z1, y } */
+  roads: [] as any[],
+  pavers: [] as any[],
+
   boxes: [],
 
   slopes: [],
@@ -50,6 +57,7 @@ export const mapState = {
   reset(){
     this.boxes.length = 0; this.slopes.length = 0; this.cover.length = 0; this.spawns.length = 0;
     this.lamps.length = 0; this.decals.length = 0; this.props.length = 0; this.parts = {}; this._topSorted = null;
+    this.terrain = null; this.roads = []; this.pavers = [];
   },
 
   P(mat){ if (!this.parts[mat]) this.parts[mat] = []; return this.parts[mat]; }

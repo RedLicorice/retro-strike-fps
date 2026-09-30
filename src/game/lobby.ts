@@ -5,6 +5,8 @@ import { BOT_NAMES } from '../data/bots';
 /* ------------------------------ E3. LOBBY STATE + MENU SCENE ------------------------------ */
 export const Lobby = {
   slots: [], seed: '', mode: 'ffa', limit: 25, skill: 1,
+  /* 'arena' | 'city' | 'city:<heightmap>' */
+  map: 'arena',
   init(name, mode, seed, bots, limit, skill){
     this.mode = mode; this.seed = seed; this.limit = limit; this.skill = skill;
     this.slots = [{ type: 'player', name: name, team: 0, id: 'p0', lv: Save.w(Save.data.loadout[0]).lvl, me: true }];

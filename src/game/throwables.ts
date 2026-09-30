@@ -25,8 +25,9 @@ export const gameThrowables = {
       np.x += g.vel.x * dt; np.y += g.vel.y * dt; np.z += g.vel.z * dt;
       /* world collision (simple) */
       const r = .09;
+      const sp = Math.hypot(g.vel.x, g.vel.z) * dt + 1;
+      const B = MAP.near(g.pos.x - sp, g.pos.z - sp, g.pos.x + sp, g.pos.z + sp).slice();
       const hitBox = (x, y, z) => {
-        const B = MAP.boxes;
         for (let k = 0; k < B.length; k++){ const b = B[k];
           if (x > b.x0 - r && x < b.x1 + r && z > b.z0 - r && z < b.z1 + r && y > b.y0 - r && y < b.y1 + r) return b; }
         return null;

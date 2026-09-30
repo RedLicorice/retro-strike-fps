@@ -2,6 +2,7 @@ import * as BABYLON from 'babylonjs';
 import { ctx } from '../core/context';
 import { V3 } from '../core/math';
 import { TX } from './textures';
+import { applyFog } from './fog';
 
 /* ------------------------------ D6b. POST / LIGHTING PIPELINE ------------------------------ */
 export const GFX = {
@@ -9,9 +10,7 @@ export const GFX = {
   init(){
     ctx.scene.ambientColor = new BABYLON.Color3(.46, .40, .32);
     ctx.scene.clearColor = new BABYLON.Color4(.58, .44, .28, 1);
-    ctx.scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
-    ctx.scene.fogStart = 28; ctx.scene.fogEnd = 130;
-    ctx.scene.fogColor = new BABYLON.Color3(.64, .50, .34);
+    applyFog();
     if (!this.pipe) this.rebuild();
   },
   rebuild(){

@@ -50,7 +50,8 @@ with sync_playwright() as p:
     # third person: prone clips (facing kept fixed so the body doesn't need to turn), turns for sideways, slide
     anim = lambda: pg.evaluate("({ frozen: __rs.Game.local.anim.frozen, turn: __rs.Game.local.anim.turn && __rs.Game.local.anim.turn.clip, active: [...__rs.Game.local.anim.active].filter(n => __rs.Game.local.anim.w[n] > .5) })")
     def still():
-        pg.evaluate("__rs.Player.pos.set(__home.x, 0.05, __home.z); __rs.Player.vel.set(0,0,0); __rs.Player.yaw = 0")
+        # park facing +Z with the body already squared up (idle offsets under the 65 deg turn threshold never self-correct)
+        pg.evaluate("__rs.Player.pos.set(__home.x, 0.05, __home.z); __rs.Player.vel.set(0,0,0); __rs.Player.yaw = 0; __rs.Game.local.anim.bodyYaw = 0")
         pg.wait_for_function("""() => { const an = __rs.Game.local.anim; const d = ((an.bodyYaw - __rs.Player.yaw + Math.PI) % (2*Math.PI) + 2*Math.PI) % (2*Math.PI) - Math.PI;
             return !an.turn && !an.trans && Math.abs(d) < .6 && Math.hypot(__rs.Game.local.animV.x, __rs.Game.local.animV.z) < .1; }""", timeout=12000)
         pg.wait_for_timeout(300)
