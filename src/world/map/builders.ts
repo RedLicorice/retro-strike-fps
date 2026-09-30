@@ -1,9 +1,13 @@
 import { PI, TAU, lerp, rndi } from '../../core/math';
 
+/* procedural materials that are drawn with a prop model instead of a textured box (collider unchanged) */
+const PROP_MAT: Record<string, string> = { crate: 'crate', rusty: 'container', sand: 'sandbag' };
+
 export const mapBuilders = {
   /* box from centre XZ + bottom Y */
-  B(mat, cx, cz, w, h, d, y0, rot){
+  B(mat, cx, cz, w, h, d, y0, rot?){
     if (h <= 0) return;
+    if (PROP_MAT[mat]) return this.PROP(PROP_MAT[mat], mat, cx, cz, w, h, d, y0, rot);
     const o = rot ? { p: [cx, y0 + h / 2, cz], s: [d, h, w], r: rot } : { p: [cx, y0 + h / 2, cz], s: [w, h, d], r: 0 };
     this.P(mat).push(o);
     const hw = w / 2, hd = d / 2;
@@ -11,7 +15,15 @@ export const mapBuilders = {
     return o;
   },
 
-  CYL(mat, cx, cz, r, h, y0, tess){
+  /* collider box + a model placement (kind 'none' = collider only). The model is fitted to the box at build time. */
+  PROP(kind, mat, cx, cz, w, h, d, y0, rot?){
+    const hw = w / 2, hd = d / 2;
+    this.boxes.push({ x0: cx - hw, x1: cx + hw, y0: y0, y1: y0 + h, z0: cz - hd, z1: cz + hd, mat: mat });
+    if (kind !== 'none') this.props.push({ kind, x: cx, z: cz, y: y0, w, h, d, rot: rot || 0 });
+  },
+
+  CYL(mat, cx, cz, r, h, y0, tess?){
+    if (mat === 'rusty') return this.PROP('barrel', mat, cx, cz, r * 1.6, h, r * 1.6, y0);
     this.P(mat).push({ p: [cx, y0 + h / 2, cz], s: [r * 2, h, r * 2], r: 0, cyl: tess || 8 });
     this.boxes.push({ x0: cx - r * .8, x1: cx + r * .8, y0: y0, y1: y0 + h, z0: cz - r * .8, z1: cz + r * .8, mat: mat });
   },
@@ -69,6 +81,11 @@ export const mapBuilders = {
       this.cover.push({ x: x + w / 2 + .55, z: z, y: 0, h: h });
     }
     if (R() < .5){ const bx = cx + (R() - .5) * 3, bz = cz + (R() - .5) * 3; this.CYL('rusty', bx, bz, .42, 1.15, 0, 8); this.cover.push({ x: bx + .8, z: bz, y: 0, h: 1.15 }); }
+    if (R() < .3){
+      const alongX = R() < .5, off = (s / 2 - 1.1) * (R() < .5 ? -1 : 1);
+      this.PROP('dumpster', 'metal', cx + (alongX ? 0 : off), cz + (alongX ? off : 0), alongX ? 3.6 : 2, 1.95, alongX ? 2 : 3.6, 0);
+      this.cover.push({ x: cx, z: cz, y: 0, h: 1.95 });
+    }
   },
 
   modContainer(R, cx, cz, s){
@@ -78,7 +95,7 @@ export const mapBuilders = {
     const put = (ox, oz, ry, y0) => {
       if (ry){ this.B('rusty', cx + ox, cz + oz, Wd, Ht, L, y0); }
       else { this.B('rusty', cx + ox, cz + oz, L, Ht, Wd, y0); }
-      this.B('metal', cx + ox, cz + oz, ry ? Wd * 1.02 : L * 1.02, .12, ry ? L * 1.02 : Wd * 1.02, y0 + Ht);
+      this.PROP('none', 'metal', cx + ox, cz + oz, ry ? Wd * 1.02 : L * 1.02, .12, ry ? L * 1.02 : Wd * 1.02, y0 + Ht);
     };
     put(0, 0, rot ? 1 : 0, 0);
     if (stack) put(rot ? 2.6 : 0, rot ? 0 : 2.6, rot ? 0 : 1, 0);
@@ -172,7 +189,8 @@ export const mapBuilders = {
       const dx = Math.cos(ang) * len / 2, dz = Math.sin(ang) * len / 2;
       const px = cx + (R() - .5) * (s - 3), pz = cz + (R() - .5) * (s - 3);
       const horiz = Math.abs(Math.cos(ang)) > .7;
-      this.B('concDark', px, pz, horiz ? len : .55, h, horiz ? .55 : len, 0);
+      if (h < 1.3) this.PROP('jersey', 'concDark', px, pz, horiz ? len : .7, h, horiz ? .7 : len, 0);
+      else this.B('concDark', px, pz, horiz ? len : .55, h, horiz ? .55 : len, 0);
       if (h > 1.5) this.B('hazard', px, pz, horiz ? len * .9 : .58, .22, horiz ? .58 : len * .9, h * .55);
       this.cover.push({ x: px + (horiz ? 0 : 1.0), z: pz + (horiz ? 1.0 : 0), y: 0, h: h });
       this.cover.push({ x: px - (horiz ? 0 : 1.0), z: pz - (horiz ? 1.0 : 0), y: 0, h: h });

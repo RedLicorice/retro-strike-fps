@@ -155,10 +155,10 @@ export const gameMatch = {
       if (a.isLocal){ if (Player.combatT < SHIELD_IDLE) a.idleT = 0; a.tickShield(dt, Player.speed > .5 || Wep.trigger); }
       else a.tickShield(dt, a.speed > .5 || now() - a.lastFire < 400);
     }
-    /* team outlines relative to the local player */
+    /* team outlines relative to the local player (by team, not by the friendly-fire flag: co-op teammates are allies) */
     for (const a of this.actors){
       if (a === me) continue;
-      a.setOutline(!a.alive ? null : (!this.ff && me && a.team === me.team) ? 'ally' : 'enemy');
+      a.setOutline(!a.alive ? null : (this.mode !== 'ffa' && me && a.team === me.team) ? 'ally' : 'enemy');
     }
     for (const m of this.monsters) m.setOutline(m.alive ? 'enemy' : null);
     Outlines.sync([...this.actors, ...this.monsters].filter(a => a !== me && a.outlineKind)

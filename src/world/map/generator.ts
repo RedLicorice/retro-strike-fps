@@ -16,10 +16,10 @@ export const mapGenerator = {
        Tops are flagged as unwalkable (height > 8m) in groundAt. */
     const hw = this.half, T = 2.6, PH = 14;
     const inner = hw - 0.15;
-    this.B('concrete', 0, -inner - T / 2, hw * 2 + T * 2, PH, T, -.6);
-    this.B('concrete', 0, inner + T / 2, hw * 2 + T * 2, PH, T, -.6);
-    this.B('concrete', -inner - T / 2, 0, T, PH, hw * 2, -.6);
-    this.B('concrete', inner + T / 2, 0, T, PH, hw * 2, -.6);
+    this.B('perimeter', 0, -inner - T / 2, hw * 2 + T * 2, PH, T, -.6);
+    this.B('perimeter', 0, inner + T / 2, hw * 2 + T * 2, PH, T, -.6);
+    this.B('perimeter', -inner - T / 2, 0, T, PH, hw * 2, -.6);
+    this.B('perimeter', inner + T / 2, 0, T, PH, hw * 2, -.6);
     /* inward lip so you cannot stand on the wall crown */
     this.B('concDark', 0, -inner + .35, hw * 2, .45, .8, PH - 1.1);
     this.B('concDark', 0, inner - .35, hw * 2, .45, .8, PH - 1.1);
@@ -27,10 +27,10 @@ export const mapGenerator = {
     this.B('concDark', inner - .35, 0, .8, .45, hw * 2, PH - 1.1);
     /* corner towers */
     const cT = inner + T / 2;
-    this.B('concDark', -cT, -cT, 3.2, PH + 2.4, 3.2, -.6);
-    this.B('concDark', cT, -cT, 3.2, PH + 2.4, 3.2, -.6);
-    this.B('concDark', -cT, cT, 3.2, PH + 2.4, 3.2, -.6);
-    this.B('concDark', cT, cT, 3.2, PH + 2.4, 3.2, -.6);
+    this.B('cinder', -cT, -cT, 3.2, PH + 2.4, 3.2, -.6);
+    this.B('cinder', cT, -cT, 3.2, PH + 2.4, 3.2, -.6);
+    this.B('cinder', -cT, cT, 3.2, PH + 2.4, 3.2, -.6);
+    this.B('cinder', cT, cT, 3.2, PH + 2.4, 3.2, -.6);
     for (let i = -hw + 3; i < hw; i += 6) {
       this.B('hazard', i, -inner + .18, 3.4, .42, .18, 1.15);
       this.B('hazard', i, inner - .18, 3.4, .42, .18, 1.15);
@@ -61,8 +61,8 @@ export const mapGenerator = {
       if (t < .45){ const w = .9 + R() * .6; this.B('crate', cx + (R() - .5) * 2.6, cz + (R() - .5) * 2.6, w, R() < .5 ? 1.05 : 1.85, w, 0);
         this.cover.push({ x: cx, z: cz + 1.3, y: 0, h: 1.5 }); }
       else if (t < .7){ this.CYL('rusty', cx + (R() - .5) * 3, cz + (R() - .5) * 3, .42, 1.15, 0, 8); }
-      else if (t < .86){ this.B('concDark', cx, cz + (R() < .5 ? -1.9 : 1.9), 2.6, 1.15, .5, 0); this.cover.push({ x: cx, z: cz, y: 0, h: 1.15 }); }
-      else { this.B('metal', cx + (R() - .5) * 2, cz + (R() - .5) * 2, 1.6, .5, 1.6, 0); }
+      else if (t < .86){ this.PROP('jersey', 'concDark', cx, cz + (R() < .5 ? -1.9 : 1.9), 2.5, 1.14, .7, 0); this.cover.push({ x: cx, z: cz, y: 0, h: 1.15 }); }
+      else { const tx = cx + (R() - .5) * 3.4, tz = cz + (R() - .5) * 3.4; this.PROP('trashcan', 'metal', tx, tz, .74, .81, .74, 0); }
     }
 
     /* floor dressing decals + lamp posts */

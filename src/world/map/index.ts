@@ -6,6 +6,7 @@ import { mapCollision } from './collision';
 import { mapNav } from './nav';
 import { mapMesh } from './mesh';
 import { mapMinimap } from './minimap';
+import { mapProps } from './props';
 
 /* MAP is composed from per-concern parts; methods share state through `this`. */
 export const MAP = compose(
@@ -15,5 +16,6 @@ export const MAP = compose(
   mapCollision,
   mapNav,
   mapMesh,
+  mapProps,
   mapMinimap
 );

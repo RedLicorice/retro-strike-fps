@@ -174,7 +174,10 @@ export class Actor {
   setOutline(kind: 'ally' | 'enemy' | null){ this.outlineKind = kind; }
   /* meshes that make up the visible body (for the outline pass) */
   outlineMeshes(): BABYLON.AbstractMesh[] {
-    return this.rig && this.rig.isEnabled() ? this.rig.getChildMeshes().filter(m => m.isEnabled() && m.isVisible) : [];
+    if (!this.rig || !this.rig.isEnabled()) return [];
+    /* the held weapon is part of the silhouette, otherwise it cuts an inner line across the body */
+    const w = this.anim && this.anim.weapon ? this.anim.weapon.getChildMeshes() : [];
+    return [...this.rig.getChildMeshes(), ...w].filter(m => m.isEnabled() && m.isVisible);
   }
 
   /* world-space muzzle of the held weapon model (null if none) */

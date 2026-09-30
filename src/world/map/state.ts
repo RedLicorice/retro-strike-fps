@@ -38,6 +38,10 @@ export const mapState = {
   mmCanvas: null,
 
   nav: null,
+  /* model placements fitted to collider boxes: { kind, x, z, y, w, h, d, rot } */
+  props: [] as any[],
+  /* street-light head positions from the last build (light pools go under them) */
+  lampHeads: [] as { x: number; z: number }[],
 
   bounds: { min: -33, max: 33 },
 
@@ -45,7 +49,7 @@ export const mapState = {
 
   reset(){
     this.boxes.length = 0; this.slopes.length = 0; this.cover.length = 0; this.spawns.length = 0;
-    this.lamps.length = 0; this.decals.length = 0; this.parts = {}; this._topSorted = null;
+    this.lamps.length = 0; this.decals.length = 0; this.props.length = 0; this.parts = {}; this._topSorted = null;
   },
 
   P(mat){ if (!this.parts[mat]) this.parts[mat] = []; return this.parts[mat]; }

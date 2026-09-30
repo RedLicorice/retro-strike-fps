@@ -83,21 +83,21 @@ export const mapMesh = {
       }
     }
 
-    /* lamp posts + light pools */
-    const postParts = [], poolParts = [];
+    /* prop models (containers, crates, barriers, sandbags, street lights, skyline) */
+    for (const m of this.buildProps(root)) this.meshes.push(m);
+
+    /* lamp fittings + light pools (street lights come from the props; their pools sit under the head) */
+    const postParts = [];
+    let head = 0;
     for (const L of this.lamps){
       if (L.post){
-        this.B && null;
-        const p = BABYLON.MeshBuilder.CreateBox('lp', { width: .16, height: L.y, depth: .16 }, ctx.scene);
-        p.position.set(L.x, L.y / 2, L.z); p.material = MAT.m.metal; postParts.push(p);
-        const h = BABYLON.MeshBuilder.CreateBox('lh', { width: .5, height: .12, depth: .5 }, ctx.scene);
-        h.position.set(L.x, L.y - .06, L.z); h.material = MAT.m.lamp; postParts.push(h);
+        const h = this.lampHeads[head++]; L.px = h.x; L.pz = h.z;
       } else {
         const h = BABYLON.MeshBuilder.CreateBox('lh', { width: .6, height: .1, depth: .3 }, ctx.scene);
         h.position.set(L.x, L.y, L.z); h.material = MAT.m.lamp; postParts.push(h);
       }
       const pool = BABYLON.MeshBuilder.CreateGround('pool', { width: 7, height: 7, subdivisions: 1 }, ctx.scene);
-      pool.position.set(L.x, (L.post ? 0.02 : L.y - 2.6), L.z);
+      pool.position.set(L.post ? L.px : L.x, (L.post ? 0.02 : L.y - 2.6), L.post ? L.pz : L.z);
       if (!MAT.m.pool){
         const pm = new BABYLON.StandardMaterial('pool', ctx.scene);
         const t = TX.mk('t_pool', 128, (x, s) => { const g = x.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);

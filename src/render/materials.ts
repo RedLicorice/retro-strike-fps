@@ -3,6 +3,9 @@ import { ctx } from '../core/context';
 import { TX } from './textures';
 
 /* ------------------------------ A4. MATERIALS ------------------------------ */
+const CITY = import.meta.env.BASE_URL + 'textures/city/';
+/* trilinear + anisotropic: the textures already carry their dither, point sampling on top turns blocky up close */
+const city = (name: string) => { const t = new BABYLON.Texture(CITY + name + '.png', ctx.scene, false, true, BABYLON.Texture.TRILINEAR_SAMPLINGMODE); t.anisotropicFilteringLevel = 4; return t; };
 export const MAT = {
   m: {} as Record<string, any>,
   std(name: string, tex?: BABYLON.Texture, spec?: number, emis?: BABYLON.Color3, tile?: number, bump?: BABYLON.Texture){
@@ -27,18 +30,17 @@ export const MAT = {
   init(){
     ctx.scene.blockMaterialDirtyMechanism = true;
     ctx.scene.ambientColor = new BABYLON.Color3(.42, .38, .32);
-    const concD = TX.concrete('#9a9686', 'rgba(40,38,30,.5)');
-    const concN = TX.concrete('#6a6c62', 'rgba(20,22,18,.6)');
-    const metD  = TX.metal('#6a7268', '#7c8478', '#b0b8ae');
     const corD  = TX.corrug();
-    const flrD  = TX.floor();
-    this.std('concrete', TX.mk('t_conc', 512, concD, false), .08, null, 1, TX.mkNorm('n_conc', 256, concD));
-    this.std('concDark', TX.mk('t_concd', 512, concN, false), .06, null, 1, TX.mkNorm('n_concd', 256, concN));
-    this.std('metal',    TX.mk('t_metal', 512, metD, false), .42, null, 1, TX.mkNorm('n_metal', 256, metD));
+    /* arena surfaces: 256px dithered city textures (assets/world/textures/city_textures, CC0) */
+    this.std('concrete', city('wall_concrete_panels'), .06);
+    this.std('concDark', city('wall_concrete_stained'), .05);
+    this.std('metal',    city('wall_metal_panel'), .2);
+    this.std('perimeter', city('wall_brick_red_worn'), .04);
+    this.std('cinder',   city('wall_cinderblock'), .04);
     this.std('rusty',    TX.mk('t_corr', 512, corD, false), .18, null, 1, TX.mkNorm('n_corr', 256, corD));
     this.std('crate',    TX.mk('t_crate', 512, TX.crate(), false), .07, null, 1);
-    this.std('floor',    TX.mk('t_floor', 512, flrD, false), .10, null, 1, TX.mkNorm('n_floor', 256, flrD));
-    this.std('sand',     TX.mk('t_sand', 512, TX.sand(), false), .04, null, 1);
+    this.std('floor',    city('road_asphalt_cracked'), .06);
+    this.std('sand',     city('ground_gravel_lot'), .03);
     this.std('hazard',   TX.mk('t_haz', 256, TX.hazard(), false), .16, null, 1);
     this.flat('trim', [.18, .19, .16]);
     this.flat('glass', [.28, .38, .42], [.08, .14, .16], .65);
