@@ -141,6 +141,8 @@ export const gameMatch = {
       me.pos.copyFrom(Player.pos); me.yaw = Player.yaw; me.pitch = Player.pitch;
       me.hp = Player.hp; me.alive = Player.alive; me.vel.copyFrom(Player.vel); me.speed = Player.speed;
       me.kills = Player.kills; me.deaths = Player.deaths; me.score = Player.score;
+      const H = Player.hang;
+      me.hangD = H ? { clip: H.clip, t: H.t, x: H.rx, y: H.ry, z: H.rz, yaw: H.L.yaw } : null;
       me.stanceD = Player.sliding > 0 ? 0 : Player.stance; me.slidingD = Player.sliding > 0; me.aimingD = Wep.aiming; me.reloadingD = Wep.reloadT > 0; me.reloadDurD = Wep.reloadDur;
       if (Wep.def && Wep.def.id !== me.wpn) me.setWeapon(Wep.def.id, true);
       me.update(dt);

@@ -66,7 +66,19 @@ CLIPS.update({
   # reloads (played on the upper body only)
   'basic_shooter/reloading.fbx': ('reload', False),
   'rifle_prone/Prone Reloading.fbx': ('prone_reload', False),
+  # ledge hang / climb (braced: feet against the wall). Root motion is kept; see TRACKED below.
+  'hangs/Idle To Braced Hang.fbx': ('hang_reach', False),
+  'hangs/Jumping To Hanging.fbx': ('hang_catch', False),
+  'hangs/Braced Hanging Idle.fbx': ('hang_idle', True),
+  'hangs/Braced Hang To Crouch.fbx': ('hang_climb', False),
+  'hangs/Braced Hang Shimmy Left.fbx': ('hang_shimmy_l', True),
+  'hangs/Braced Hang Shimmy Right.fbx': ('hang_shimmy_r', True),
+  'hangs/Braced Hang Drop To Standing.fbx': ('hang_drop_stand', False),
 })
+# clips whose body path matters to gameplay: keep their root motion (shimmies excepted: they loop in place and the
+# game moves the anchor) and record grip point + head / hips / feet paths in metres for a 1.8 m body
+TRACKED = lambda n: n.startswith('hang_')
+HANG_GRIP = (0.335, -0.009, 2.048)     # [forward, left, up] m: Braced Hanging Idle's grip, shared by every hang clip
 fix = lambda s: re.sub(r'mixamorig\d*:', 'mixamorig:', s)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.fbx(filepath=os.path.join(root, 'rifle_pro/idle.fbx'))
@@ -82,12 +94,57 @@ for rel, (name, loop) in CLIPS.items():
     new = [o for o in bpy.data.objects if o not in before]
     arm = next(o for o in new if o.type == 'ARMATURE')
     act = arm.animation_data.action; act.name = name
+    track = None
+    if TRACKED(name):
+        from mathutils import Vector
+        pbs = {fix(pb.name).split(':')[-1]: pb for pb in arm.pose.bones}
+        top = next((b for b in arm.data.bones if fix(b.name).endswith('HeadTop_End')), None)
+        k = 1.8 / (arm.matrix_world @ top.head_local).z if top else 1.0
+        W = lambda bn: arm.matrix_world @ pbs[bn].head
+        fl = lambda v: [round(-v.y * k, 3), round(v.x * k, 3), round(v.z * k, 3)]      # [forward, left, up] of the character
+        sc = bpy.context.scene
+        f0, f1 = act.frame_range
+        grip = lambda: (W('LeftHandMiddle1') + W('RightHandMiddle1')) / 2
+        # every hang clip holds the ledge at the same point relative to the root (the idle's grip), measured on the
+        # frame where it is on the ledge: the start for moves that begin hanging, the end for moves that end hanging
+        if name != 'hang_idle':
+            at = int(f1) if name in ('hang_reach', 'hang_catch') else int(f0)
+            sc.frame_set(at); g = grip()
+            want = Vector((HANG_GRIP[1] / k, -HANG_GRIP[0] / k, HANG_GRIP[2] / k))      # [f, l, u] -> Blender world
+            hl = [fc for fc in act.fcurves if fc.data_path.endswith('Hips"].location')]
+            hl.sort(key=lambda fc: fc.array_index)
+            # world response of the hips to a unit change of each local location channel
+            cols = []
+            for fc in hl:
+                sc.frame_set(at); p0 = W('Hips').copy()
+                for kp in fc.keyframe_points: kp.co[1] += 1; kp.handle_left[1] += 1; kp.handle_right[1] += 1
+                fc.update(); sc.frame_set(at); cols.append(W('Hips') - p0)
+                for kp in fc.keyframe_points: kp.co[1] -= 1; kp.handle_left[1] -= 1; kp.handle_right[1] -= 1
+                fc.update()
+            from mathutils import Matrix
+            M = Matrix((cols[0], cols[1], cols[2])).transposed()
+            d = M.inverted() @ (want - g)
+            for fc, dv in zip(hl, d):
+                for kp in fc.keyframe_points: kp.co[1] += dv; kp.handle_left[1] += dv; kp.handle_right[1] += dv
+                fc.update()
+            sc.frame_set(at); print('ALIGN', name, [round(v, 3) for v in (grip() - want)])
+        rows = {'t': [], 'head': [], 'hips': [], 'feet': [], 'grip': []}
+        step = max(1, round(fps / 15))
+        frames = list(range(int(f0), int(f1) + 1, step))
+        if frames[-1] != int(f1): frames.append(int(f1))
+        for fr in frames:
+            sc.frame_set(fr)
+            g = (W('LeftHandMiddle1') + W('RightHandMiddle1')) / 2
+            feet = min(W('LeftToeBase'), W('RightToeBase'), key=lambda v: v.z)
+            rows['t'].append(round((fr - f0) / fps, 3))
+            for key, v in (('head', W('Head')), ('hips', W('Hips')), ('feet', feet), ('grip', g)): rows[key].append(fl(v))
+        track = rows
     for fc in act.fcurves: fc.data_path = fix(fc.data_path)
     f0, f1 = act.frame_range
     hips = {fc.array_index: fc for fc in act.fcurves if fc.data_path == 'pose.bones["mixamorig:Hips"].location'}
     dx = hips[0].evaluate(f1) - hips[0].evaluate(f0); dz = hips[2].evaluate(f1) - hips[2].evaluate(f0)
     dur = (f1 - f0) / fps
-    if not name.startswith('death'):
+    if not name.startswith('death') and not (TRACKED(name) and not name.startswith('hang_shimmy')):
         # bake in place: remove the linear horizontal drift, keep the bob/sway
         for i, d in ((0, dx), (2, dz)):
             for k in hips[i].keyframe_points:
@@ -119,7 +176,7 @@ for rel, (name, loop) in CLIPS.items():
             # twist about world up (Blender Z): yaw the body ends up turned by
             tw = Quaternion((dw.w, 0, 0, dw.z)).normalized()
             turn = round(math.degrees(2 * math.atan2(tw.z, tw.w)), 1)   # + = counter-clockwise from above
-    man['clips'][name] = {'loop': loop, 'dur': round(dur, 4), 'speed': round((dx * dx + dz * dz) ** .5 * .01 / dur, 3) if loop else 0, 'src': rel, **({'air': air} if air else {}), **({'turn': turn} if turn is not None else {}), **({'span': span} if span else {})}
+    man['clips'][name] = {'loop': loop, 'dur': round(dur, 4), 'speed': round((dx * dx + dz * dz) ** .5 * .01 / dur, 3) if loop else 0, 'src': rel, **({'air': air} if air else {}), **({'turn': turn} if turn is not None else {}), **({'span': span} if span else {}), **({'track': track} if track else {})}
     act.use_fake_user = True
     tr = base.animation_data.nla_tracks.new(); tr.name = name
     st = tr.strips.new(name, int(f0), act); st.action_frame_start, st.action_frame_end = f0, f1

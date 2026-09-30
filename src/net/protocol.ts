@@ -62,6 +62,7 @@ export const netProtocol = {
         const k = d > 1.6 ? 1.6 / d : 1;                       /* sanity clamp vs teleport hacks */
         a.pos.set(lerp(a.pos.x, m.p[0], k), m.p[1], lerp(a.pos.z, m.p[2], k));
         a.yaw = m.y; a.pitch = m.pt; a.stanceD = m.s; a.slidingD = !!m.sl; a.reloadingD = !!m.rl; if (m.rl) a.reloadDurD = m.rl; a.vel.set(m.v ? m.v[0] : 0, 0, m.v ? m.v[2] : 0);
+        a.hangD = decodeHang(m.hg);
         a.name = m.n || a.name;
         if (m.ch && m.ch !== a.charId) a.setCharacter(m.ch);
         break;
@@ -160,6 +161,7 @@ export const netProtocol = {
       if (s[14] && s[14] !== a.charId) a.setCharacter(s[14]);
       if (s[16] !== undefined) a.shield = s[16];
       if (s[15] !== undefined){ a.stanceD = s[15] & 3; a.slidingD = !!(s[15] & 8); a.reloadingD = !!(s[15] & 16); }
+      if (!a.isLocal) a.hangD = decodeHang(s[17]);
       const wid = WEAPONS[clamp(s[10] | 0, 0, WEAPONS.length - 1)];
       if (wid && wid.id !== a.wpn) a.setWeapon(wid.id);
       a.kills = s[6]; a.deaths = s[7]; a.score = s[8];
@@ -191,7 +193,7 @@ export const netProtocol = {
       this.snapAcc += dt;
       if (this.snapAcc >= 1 / 20 && Game.state === 'play'){
         this.snapAcc = 0;
-        const arr = Game.actors.map(a => [a.id, +a.pos.x.toFixed(2), +a.pos.y.toFixed(2), +a.pos.z.toFixed(2), Math.round(a.hp), a.alive ? 1 : 0, a.kills, a.deaths, a.score, a.name, WEAPONS.findIndex(w => w.id === a.wpn), +a.yaw.toFixed(2), +a.pitch.toFixed(2), a.team | 0, a.charId, (a.stanceD | 0) | (a.slidingD ? 8 : 0) | (a.reloadingD ? 16 : 0), Math.round(a.shield || 0)]);
+        const arr = Game.actors.map(a => [a.id, +a.pos.x.toFixed(2), +a.pos.y.toFixed(2), +a.pos.z.toFixed(2), Math.round(a.hp), a.alive ? 1 : 0, a.kills, a.deaths, a.score, a.name, WEAPONS.findIndex(w => w.id === a.wpn), +a.yaw.toFixed(2), +a.pitch.toFixed(2), a.team | 0, a.charId, (a.stanceD | 0) | (a.slidingD ? 8 : 0) | (a.reloadingD ? 16 : 0), Math.round(a.shield || 0), (h => h ? [h.clip, +h.t.toFixed(2), +h.x.toFixed(2), +h.y.toFixed(2), +h.z.toFixed(2), +h.yaw.toFixed(3)] : 0)(a.hangD)]);
         this.broadcast({ k: 'snap', a: arr, s: [Game.score[0], Game.score[1]], tl: Math.round(Game.timeLeft), w: Game.wave, wq: Game.waveQueue || 0 });
       }
       if (Math.random() < dt * .5) for (const p of this.peers) this.send(p, { k: 'ping', t: now() });
@@ -200,7 +202,7 @@ export const netProtocol = {
       if (this.inAcc >= 1 / 30 && Game.state === 'play'){
         this.inAcc = 0;
         const p = this.peers[0];
-        if (p) this.send(p, { k: 'in', p: [+Player.pos.x.toFixed(2), +Player.pos.y.toFixed(2), +Player.pos.z.toFixed(2)], y: +Player.yaw.toFixed(3), pt: +Player.pitch.toFixed(3), s: Player.stance, sl: Player.sliding > 0 ? 1 : 0, rl: Wep.reloadT > 0 ? +Wep.reloadDur.toFixed(2) : 0, v: [+Player.vel.x.toFixed(1), 0, +Player.vel.z.toFixed(1)], n: Save.data.name, ch: Save.data.character });
+        if (p) this.send(p, { k: 'in', p: [+Player.pos.x.toFixed(2), +Player.pos.y.toFixed(2), +Player.pos.z.toFixed(2)], y: +Player.yaw.toFixed(3), pt: +Player.pitch.toFixed(3), s: Player.stance, sl: Player.sliding > 0 ? 1 : 0, rl: Wep.reloadT > 0 ? +Wep.reloadDur.toFixed(2) : 0, v: [+Player.vel.x.toFixed(1), 0, +Player.vel.z.toFixed(1)], n: Save.data.name, ch: Save.data.character, hg: (h => h ? [h.clip, +h.t.toFixed(2), +h.x.toFixed(2), +h.y.toFixed(2), +h.z.toFixed(2), +h.yaw.toFixed(3)] : 0)(Game.local && Game.local.hangD) });
       }
       if (Math.random() < dt * .5) this.send(this.peers[0], { k: 'ping', t: now() });
       /* interpolate remote actors */
@@ -217,3 +219,8 @@ export const netProtocol = {
     }
   }
 };
+
+/* [clip, t, x, y, z, yaw] | 0  ->  Actor.hangD */
+function decodeHang(h: any){
+  return Array.isArray(h) && typeof h[0] === 'string' ? { clip: h[0], t: +h[1] || 0, x: +h[2], y: +h[3], z: +h[4], yaw: +h[5] || 0 } : null;
+}

@@ -11,6 +11,8 @@ import { UI } from '../ui/index';
 import { Wep } from '../weapons/weaponController';
 import { MAP } from '../world/map/index';
 import { worldMove } from '../world/physics';
+import { Models } from '../assets/models';
+import { Ledge, catchTime, clipDur, findLedge, hangRoot, ledgeClear, toWorld, trackAt } from './ledge';
 
 /* seconds of invulnerability after (re)spawn; ends early when you deal damage */
 export const Player = {
@@ -21,6 +23,9 @@ export const Player = {
   eyeCur: 1.66, hCur: STAND_H, speed: 0, landV: 0, blindT: 0, flashT: 0, burnT: 0, burnTick: 0,
   id: 'p0', team: 0, name: 'PLAYER', kills: 0, deaths: 0, score: 0, hs: 0, streak: 0,
   lastDmgFrom: null, spawnT: 0, respawnT: 3, tp: 0, tpAdvance: 0, lastGood: V3(0, 2, 0),
+  /* ledge state (player/ledge.ts): phase, clip + time, the ledge, and the rig root the clip plays from */
+  hang: null as null | { ph: 'mantle' | 'reach' | 'catch' | 'hang' | 'climb' | 'drop'; clip: string; t: number; t0: number; L: Ledge; ground: number; ox: number; oz: number; rx: number; ry: number; rz: number },
+  hangCd: 0, eyeAt: null as null | { x: number; y: number; z: number },
 
   height(){ return this.stance === 2 ? PRONE_H : this.stance === 1 ? CROUCH_H : STAND_H; },
   eye(){ return this.stance === 2 ? .50 : this.stance === 1 ? 1.08 : 1.66; },
@@ -36,9 +41,10 @@ export const Player = {
     this.hp = this.maxHp; this.alive = true; this.stance = 0; this.stanceWant = 0;
     this.sliding = 0; this.combatT = 99; this.blindT = 0; this.burnT = 0; this.spawnT = 1.2;
     this.hCur = STAND_H; this.eyeCur = 1.66; this.dip = 0; this.onGround = true;
+    this.hang = null; this.hangCd = 0; this.eyeAt = null;
   },
   overlap(x, y, z, r, h){
-    const B = MAP.boxes, x0 = x - r, x1 = x + r, y1 = y + h, z0 = z - r, z1 = z + r;
+    const x0 = x - r, x1 = x + r, y1 = y + h, z0 = z - r, z1 = z + r, B = MAP.near(x0, z0, x1, z1);
     for (let i = 0; i < B.length; i++){
       const b = B[i];
       if (b.x1 < x0 || b.x0 > x1 || b.z1 < z0 || b.z0 > z1 || b.y1 < y + .02 || b.y0 > y1) continue;
@@ -47,7 +53,7 @@ export const Player = {
     return null;
   },
   blocker(x, y, z, r, h){
-    const B = MAP.boxes; let best = null;
+    const B = MAP.near(x - r, z - r, x + r, z + r); let best = null;
     for (let i = 0; i < B.length; i++){
       const b = B[i];
       if (b.x1 < x - r || b.x0 > x + r || b.z1 < z - r || b.z0 > z + r || b.y1 < y + .02 || b.y0 > y + h) continue;
@@ -67,6 +73,62 @@ export const Player = {
     this.pitch = clamp(this.pitch, -1.53, 1.53);
     this.yaw = ((this.yaw + PI) % TAU + TAU) % TAU - PI;
 
+    /* ---- movement, or the hang clip driving the body ---- */
+    this.eyeAt = null;
+    if (this.hang) this.updateHang(dt);
+    else this.move(dt, S, inp, t);
+    const p = this.pos;
+
+    /* ---- cover based regeneration ---- */
+    this.combatT += dt;
+    const delay = this.inCover ? 1.7 : 3.0;
+    if (this.alive && this.hp < this.maxHp && this.combatT > delay){
+      const rate = this.inCover ? 46 : 30;
+      const before = this.hp;
+      this.hp = Math.min(this.maxHp, this.hp + rate * dt);
+      if ((before < this.maxHp && this.hp >= this.maxHp)) UI.toast('VITALS RESTORED', 'g');
+    }
+    this.coverT += dt;
+    if (this.blindT > 0) this.blindT -= dt;
+    if (this.burnT > 0){
+      this.burnT -= dt; this.burnTick -= dt;
+      if (this.burnTick <= 0){ this.burnTick = .5; Combat.hurt(this, 6, null, 'fire'); }
+    }
+    if (this.spawnT > 0) this.spawnT -= dt;
+
+    /* ---- write camera ---- */
+    const sh = FX.shakeA;
+    const shx = sh > 0 ? Math.sin(FX.shakeT * 61) * sh * .012 : 0;
+    const shy = sh > 0 ? Math.sin(FX.shakeT * 47 + 1.7) * sh * .014 : 0;
+    const ex = this.eyeAt ? this.eyeAt.x : p.x, ey = this.eyeAt ? this.eyeAt.y : p.y + this.eyeCur - this.dip, ez = this.eyeAt ? this.eyeAt.z : p.z;
+    /* third person: over-the-shoulder boom (collides with the arena); aiming pulls the camera in over the shoulder */
+    const want3p = !!Save.data.settings.view3p;
+    this.tp = damp(this.tp, want3p ? 1 : 0, 10, dt);
+    ctx.view3p = this.tp;
+    this.tpAdvance = 0;
+    if (this.tp > .005){
+      const pit = this.pitch - Wep.recP, cp = Math.cos(pit);
+      const fx = Math.sin(this.yaw) * cp, fy = -Math.sin(pit), fz = Math.cos(this.yaw) * cp;
+      const rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw);
+      const aim = Wep.aimT, back = 2.3 - aim * 1.05, side = .5 + aim * .12, lift = .22 - aim * .07;
+      let bx = -fx * back + rx * side, by = -fy * back + lift, bz = -fz * back + rz * side;
+      let bl = Math.hypot(bx, by, bz); bx /= bl; by /= bl; bz /= bl;
+      const hit = MAP.ray(ex, ey, ez, bx, by, bz, bl);
+      if (hit) bl = Math.max(.2, hit.t - .25);
+      bl *= this.tp;
+      const cx = ex + bx * bl, cy = ey + by * bl, cz = ez + bz * bl;
+      ctx.cam.position.set(cx, cy, cz);
+      /* distance from the camera to the player's plane: shots start there so nothing behind the player is hit */
+      this.tpAdvance = Math.max(0, (ex - cx) * fx + (ey - cy) * fy + (ez - cz) * fz);
+    } else ctx.cam.position.set(ex, ey, ez);
+    ctx.cam.rotation.set(this.pitch - Wep.recP + shy, this.yaw + shx, this.roll + (sh > 0 ? Math.sin(FX.shakeT * 39) * sh * .02 : 0));
+    if (Input.pressed('KeyV')){
+      Save.data.settings.view3p = !Save.data.settings.view3p; Save.flush();
+      UI.toast(Save.data.settings.view3p ? 'THIRD PERSON' : 'FIRST PERSON', 'g');
+    }
+    ctx.cam.fov = damp(ctx.cam.fov, Wep.fovTarget(), 12, dt);
+  },
+  move(dt, S, inp, t){
     /* ---- stance ----
        C: stand → crouch → prone → crouch …   (C while sprinting = slide)
        Space: jump when standing, otherwise stand up.   Shift: sprint (standing) / crouch-run (crouched). */
@@ -88,7 +150,12 @@ export const Player = {
     let jumpNow = false;
     if (pressJump){
       if (this.stanceWant !== 0 || this.stance !== 0) this.stanceWant = 0;   /* get up first */
-      else jumpNow = true;
+      else {
+        /* a ledge too high to jump onto but within reach: mantle straight over it, or reach up and hang */
+        const L = this.onGround && this.sliding <= 0 ? findLedge(this.pos.x, this.pos.z, this.pos.y, this.yaw, this.radius, 1.2, 2.55, .55) : null;
+        if (L){ this.startHang(L, L.ey - this.pos.y <= 1.9 ? 'mantle' : 'reach'); return; }
+        jumpNow = true;
+      }
     }
     /* Shift while crouched: stand up and run for as long as it's held, then drop back into the crouch */
     const fwdHeld = inp.down('KeyW') || inp.down('ArrowUp') || ((ctx.IS_TOUCH || S.touch) && t.my < -.3);
@@ -164,6 +231,14 @@ export const Player = {
       if (-mv.landV > 21) Combat.hurt(this, Math.round((-mv.landV - 21) * 3.2), null, 'fall');
     }
 
+    /* ---- airborne next to a reachable ledge, heading into it: catch it ---- */
+    if (this.hangCd > 0) this.hangCd -= dt;
+    if (!this.onGround && this.vel.y < 2.5 && this.hangCd <= 0 && this.alive){
+      const into = fwdHeld || (this.vel.x * Math.sin(this.yaw) + this.vel.z * Math.cos(this.yaw)) > 1.5;
+      const L = into ? findLedge(p.x, p.z, p.y, this.yaw, r, .9, 2.35, .4) : null;
+      if (L){ this.startHang(L, L.ey - p.y < 1.25 ? 'mantle' : 'catch'); return; }
+    }
+
     /* ---- footstep audio ---- */
     if (this.onGround && this.speed > 1.2){
       this.stepT -= dt * this.speed * (this.stance === 2 ? .5 : 1);
@@ -179,55 +254,105 @@ export const Player = {
     this.bobA = damp(this.bobA, Math.min(1, bs / 6), 8, dt);
     this.roll = damp(this.roll, -clamp(this.vel.x * .006, -.05, .05) * (this.sprint ? 2.2 : 1) + (this.sliding > 0 ? .09 : 0), 8, dt);
 
-    /* ---- cover based regeneration ---- */
-    this.combatT += dt;
-    const delay = this.inCover ? 1.7 : 3.0;
-    if (this.alive && this.hp < this.maxHp && this.combatT > delay){
-      const rate = this.inCover ? 46 : 30;
-      const before = this.hp;
-      this.hp = Math.min(this.maxHp, this.hp + rate * dt);
-      if ((before < this.maxHp && this.hp >= this.maxHp)) UI.toast('VITALS RESTORED', 'g');
-    }
-    this.coverT += dt;
-    if (this.blindT > 0) this.blindT -= dt;
-    if (this.burnT > 0){
-      this.burnT -= dt; this.burnTick -= dt;
-      if (this.burnTick <= 0){ this.burnTick = .5; Combat.hurt(this, 6, null, 'fire'); }
-    }
-    if (this.spawnT > 0) this.spawnT -= dt;
-
-    /* ---- write camera ---- */
-    const sh = FX.shakeA;
-    const shx = sh > 0 ? Math.sin(FX.shakeT * 61) * sh * .012 : 0;
-    const shy = sh > 0 ? Math.sin(FX.shakeT * 47 + 1.7) * sh * .014 : 0;
-    const ex = p.x, ey = p.y + this.eyeCur - this.dip, ez = p.z;
-    /* third person: over-the-shoulder boom (collides with the arena); aiming pulls the camera in over the shoulder */
-    const want3p = !!Save.data.settings.view3p;
-    this.tp = damp(this.tp, want3p ? 1 : 0, 10, dt);
-    ctx.view3p = this.tp;
-    this.tpAdvance = 0;
-    if (this.tp > .005){
-      const pit = this.pitch - Wep.recP, cp = Math.cos(pit);
-      const fx = Math.sin(this.yaw) * cp, fy = -Math.sin(pit), fz = Math.cos(this.yaw) * cp;
-      const rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw);
-      const aim = Wep.aimT, back = 2.3 - aim * 1.05, side = .5 + aim * .12, lift = .22 - aim * .07;
-      let bx = -fx * back + rx * side, by = -fy * back + lift, bz = -fz * back + rz * side;
-      let bl = Math.hypot(bx, by, bz); bx /= bl; by /= bl; bz /= bl;
-      const hit = MAP.ray(ex, ey, ez, bx, by, bz, bl);
-      if (hit) bl = Math.max(.2, hit.t - .25);
-      bl *= this.tp;
-      const cx = ex + bx * bl, cy = ey + by * bl, cz = ez + bz * bl;
-      ctx.cam.position.set(cx, cy, cz);
-      /* distance from the camera to the player's plane: shots start there so nothing behind the player is hit */
-      this.tpAdvance = Math.max(0, (ex - cx) * fx + (ey - cy) * fy + (ez - cz) * fz);
-    } else ctx.cam.position.set(ex, ey, ez);
-    ctx.cam.rotation.set(this.pitch - Wep.recP + shy, this.yaw + shx, this.roll + (sh > 0 ? Math.sin(FX.shakeT * 39) * sh * .02 : 0));
-    if (Input.pressed('KeyV')){
-      Save.data.settings.view3p = !Save.data.settings.view3p; Save.flush();
-      UI.toast(Save.data.settings.view3p ? 'THIRD PERSON' : 'FIRST PERSON', 'g');
-    }
-    ctx.cam.fov = damp(ctx.cam.fov, Wep.fovTarget(), 12, dt);
   },
+
+  /* ---------------- ledge hang / climb ----------------
+     mantle: Space at a 1.2-1.9 m ledge -> climb straight over (Braced Hang To Crouch from the ground)
+     reach:  Space at a 1.9-2.55 m ledge -> Idle To Braced Hang, then hang
+     catch:  airborne into a reachable ledge -> the grab of Jumping To Hanging, then hang
+     hang:   W / Space climb over, A / D shimmy along the edge, S / C let go (drop to standing when the ground is a body length below) */
+  startHang(L: Ledge, mode: 'mantle' | 'reach' | 'catch'){
+    const clip = mode === 'mantle' ? 'hang_climb' : mode === 'reach' ? 'hang_reach' : 'hang_catch';
+    const t0 = mode === 'catch' ? catchTime(clip) : 0;
+    const root = hangRoot(L);
+    const ground = MAP.groundAt(this.pos.x, this.pos.z, this.pos.y + .3, .6);
+    /* where the clip puts the body at its first frame vs where the body is: that gap fades out over 0.3 s */
+    const b = toWorld(root.x, root.y, root.z, L.yaw, trackAt(clip, 'hips', t0));
+    this.hang = { ph: mode, clip, t: t0, t0, L, ground, ox: this.pos.x - b.x, oz: this.pos.z - b.z, rx: root.x, ry: root.y, rz: root.z };
+    this.vel.set(0, 0, 0); this.stance = 0; this.stanceWant = 0; this.sliding = 0; this.sprint = false; this.onGround = false;
+    SFX.noise(.12, .16, 700, 240, 1.2, 'bandpass');
+  },
+
+  /* let go: fall from where the body hangs, pushed a little off the wall */
+  releaseHang(){
+    const H = this.hang; if (!H) return;
+    this.vel.set(H.L.nx * 1.4, -.5, H.L.nz * 1.4);
+    this.hang = null; this.hangCd = .45; this.onGround = false;
+  },
+
+  updateHang(dt){
+    const H = this.hang, L = H.L, inp = Input, tch = inp.touch;
+    H.t += dt;
+    const dur = clipDur(H.clip);
+    if (!this.alive){ this.hang = null; return; }
+    if (H.ph === 'hang'){
+      const key = (k: string) => inp.down(k) || inp.pressed(k);            /* held, or tapped between frames */
+      const climb = key('KeyW') || key('ArrowUp') || inp.pressed('Space') || tch.jump || tch.my < -.5;
+      const drop = key('KeyS') || key('ArrowDown') || inp.pressed('KeyC') || tch.crouchTap || tch.my > .5;
+      const side = (inp.down('KeyD') || inp.down('ArrowRight') || tch.mx > .5 ? 1 : 0) - (inp.down('KeyA') || inp.down('ArrowLeft') || tch.mx < -.5 ? 1 : 0);
+      tch.jump = false; tch.crouchTap = false;
+      if (climb){ H.ph = 'climb'; H.clip = 'hang_climb'; H.t = H.t0 = 0; H.ox = H.oz = 0; SFX.noise(.18, .2, 600, 200, 1.2, 'bandpass'); }
+      else if (drop){
+        const feet = toWorld(H.rx, H.ry, H.rz, L.yaw, trackAt('hang_idle', 'feet', 0));
+        const g = MAP.groundAt(feet.x + L.nx * .3, feet.z + L.nz * .3, feet.y, 8), gap = feet.y - g;
+        if (gap > .9 && gap < 1.8 && Models.clips['hang_drop_stand']){ H.ph = 'drop'; H.clip = 'hang_drop_stand'; H.t = H.t0 = 0; H.ground = g; H.ox = H.oz = 0; }
+        else { this.releaseHang(); return; }
+      } else if (side){
+        /* shimmy: slide the grip along the face while the edge continues and nothing is in the way */
+        const sp = (Models.clips['hang_shimmy_r'] && Models.clips['hang_shimmy_r'].speed) || .5;
+        const rx = Math.cos(L.yaw) * side, rz = -Math.sin(L.yaw) * side;                    /* body right in the world */
+        const nx = L.ex + rx * sp * dt, nz = L.ez + rz * sp * dt, u = L.nx ? nz : nx;
+        const body = toWorld(H.rx + rx * .45, H.ry, H.rz + rz * .45, L.yaw, trackAt('hang_idle', 'hips', 0));
+        if (u > L.lo + .4 && u < L.hi - .4 && ledgeClear(nx, L.ey, nz, L.nx, L.nz) && !MAP.headBlocked(body.x, body.z, body.y - .6, 1.4)){
+          L.ex = nx; L.ez = nz;
+          const want = side > 0 ? 'hang_shimmy_r' : 'hang_shimmy_l';
+          if (H.clip !== want){ H.clip = want; H.t = 0; }
+        } else if (H.clip !== 'hang_idle'){ H.clip = 'hang_idle'; H.t = 0; }
+      } else if (H.clip !== 'hang_idle'){ H.clip = 'hang_idle'; H.t = 0; }
+    }
+    /* ---- root: hands on the ledge; entering from / leaving to the ground blends the height in or out ---- */
+    const root = hangRoot(L), cd = clipDur(H.clip), t = H.t;
+    const sm = (x: number) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
+    const feetAt = (tt: number) => trackAt(H.clip, 'feet', tt)[2];
+    let ry = root.y;
+    if (H.ph === 'mantle'){
+      const gRoot = H.ground - feetAt(0), top = L.ey + .06 - feetAt(cd);
+      ry = t < cd * .35 ? root.y + (gRoot - root.y) * (1 - sm(t / (cd * .35))) : t > cd * .6 ? root.y + (top - root.y) * sm((t - cd * .6) / (cd * .4)) : root.y;
+    } else if (H.ph === 'climb'){
+      const top = L.ey + .06 - feetAt(cd);
+      ry = t > cd * .6 ? root.y + (top - root.y) * sm((t - cd * .6) / (cd * .4)) : root.y;
+    } else if (H.ph === 'reach'){
+      const gRoot = H.ground - feetAt(0);
+      ry = gRoot + (root.y - gRoot) * sm(t / (cd * .85));
+    } else if (H.ph === 'drop'){
+      const gEnd = H.ground - feetAt(cd);
+      ry = root.y + (gEnd - root.y) * sm((t - cd * .3) / (cd * .6));
+    }
+    const k = Math.max(0, 1 - (t - H.t0) / .3);
+    H.rx = root.x + H.ox * k; H.ry = ry; H.rz = root.z + H.oz * k;
+    /* ---- body (hitbox) and eye follow the clip ---- */
+    const hips = toWorld(H.rx, H.ry, H.rz, L.yaw, trackAt(H.clip, 'hips', t));
+    const feet = toWorld(H.rx, H.ry, H.rz, L.yaw, trackAt(H.clip, 'feet', t));
+    this.pos.set(hips.x, Math.min(feet.y, hips.y - .9), hips.z);
+    this.vel.set(0, 0, 0); this.speed = 0; this.onGround = false;
+    const head = toWorld(H.rx, H.ry, H.rz, L.yaw, trackAt(H.clip, 'head', t));
+    this.eyeAt = { x: head.x + Math.sin(L.yaw) * .1, y: head.y + .08, z: head.z + Math.cos(L.yaw) * .1 };
+    this.eyeCur = this.eyeAt.y - this.pos.y;
+    /* ---- phase ends ---- */
+    if ((H.ph === 'mantle' || H.ph === 'climb') && t >= cd){
+      /* on top, crouched where the clip ends; stand up if there's room */
+      const e = toWorld(H.rx, H.ry, H.rz, L.yaw, trackAt(H.clip, 'hips', cd));
+      let x = e.x, z = e.z;
+      if (Math.abs(MAP.groundAt(x, z, L.ey + .2, .4) - L.ey) > .05){ x = L.ex - L.nx * .45; z = L.ez - L.nz * .45; }
+      this.pos.set(x, L.ey + .02, z); this.hang = null; this.onGround = true;
+      this.stance = 1; this.stanceWant = 0; this.hCur = CROUCH_H; this.eyeCur = 1.08; this.hangCd = .3;
+    } else if ((H.ph === 'reach' || H.ph === 'catch') && t >= cd){
+      H.ph = 'hang'; H.clip = 'hang_idle'; H.t = H.t0 = 0; H.ox = H.oz = 0;
+    } else if (H.ph === 'drop' && t >= cd * .9){
+      this.pos.set(feet.x, H.ground + .02, feet.z); this.hang = null; this.onGround = true; this.hangCd = .45;
+    }
+  },
+
   damageDir(from){
     if (!from) return;
     const a = Math.atan2(from.x - this.pos.x, from.z - this.pos.z) - this.yaw;

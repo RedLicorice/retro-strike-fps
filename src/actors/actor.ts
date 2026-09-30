@@ -169,6 +169,9 @@ export class Actor {
     if (this.idleT > SHIELD_IDLE && this.shield < SHIELD_MAX) this.shield = Math.min(SHIELD_MAX, this.shield + SHIELD_PER / SHIELD_REFILL * dt);
   }
 
+  /* ledge hang presentation: clip + time and the rig root at the ledge (local player: from Player.hang; others: net) */
+  hangD: { clip: string; t: number; x: number; y: number; z: number; yaw: number } | null = null;
+
   /* team relation for the outline pass (render/outlines.ts): red enemies, blue allies, null = none */
   outlineKind: 'ally' | 'enemy' | null = null;
   setOutline(kind: 'ally' | 'enemy' | null){ this.outlineKind = kind; }
@@ -199,7 +202,10 @@ export class Actor {
     const visible = (!this.isLocal || ctx.view3p > .5) && (this.alive || this.deathT < 4.4);
     this.rig.setEnabled(visible);
     if (!visible) return;
-    this.rig.position.set(this.pos.x, this.pos.y, this.pos.z);
+    /* hanging / climbing: the clip plays from its own root at the ledge, facing the wall */
+    const hg = this.alive ? this.hangD : null;
+    if (hg) this.rig.position.set(hg.x, hg.y, hg.z);
+    else this.rig.position.set(this.pos.x, this.pos.y, this.pos.z);
     /* velocity from motion, so bots, remote players and demos animate the same way */
     const k = Math.min(1, dt * 12), idt = 1 / Math.max(1e-3, dt);
     const tp = (this.pos.x - this.lastPos.x) * idt, tz = (this.pos.z - this.lastPos.z) * idt, ty = (this.pos.y - this.lastPos.y) * idt;
@@ -218,7 +224,8 @@ export class Actor {
     this.anim.update(dt, {
       alive: this.alive,
       vx: this.animV.x, vz: this.animV.z, vy: this.animV.y,
-      yaw: this.yaw,
+      yaw: hg ? hg.yaw : this.yaw,
+      hang: hg ? { clip: hg.clip, t: hg.t } : null,
       stance: clamp(this.stanceD | 0, 0, 2) as 0 | 1 | 2,
       sliding: !!this.slidingD,
       aiming: this.aimingD || now() - this.lastFire < 1400 || (this.isBot && this.ai.target && this.ai.seen > 0),

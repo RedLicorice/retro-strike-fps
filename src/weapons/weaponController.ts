@@ -256,11 +256,11 @@ export const Wep = {
   },
   update(dt){
     const d = this.def; if (!d) return;
-    if (!Player.alive || Game.state !== 'play'){
+    if (!Player.alive || Game.state !== 'play' || Player.hang){
       if (this.vm) this.vm.setEnabled(false);
       if (this.fp) this.fp.setEnabled(false);
       if (this.hands) this.hands.setEnabled(false);
-      /* dying cancels a reload in progress (and its HUD bar) */
+      /* dying (or grabbing a ledge: both hands are on it) cancels a reload in progress (and its HUD bar) */
       if (this.reloadT > 0 || this.reloadStage){ this.reloadT = 0; this.reloadStage = 0; UI.reloadBar(-1); }
       $('scopeOv').classList.remove('on');
       this.trigger = false; this.aimT = damp(this.aimT, 0, 9, dt);

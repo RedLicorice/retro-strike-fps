@@ -25,12 +25,15 @@ In dev builds, `window.__rs` exposes `{ ctx, Game, Player, MAP, Wep, Combat, Inp
 ## Content
 
 - **Operators (9):** Mixamo characters, decimated to 16k triangles each (Swat is left at 19.4k), with base-colour textures only (≤1024², WebP). They are selected in the menu's **OPERATOR** tab and synced to peers.
-- **Animations:** one shared set (`public/models/anims/rifle.glb`, 63 clips), retargeted onto every operator by bone name. Clips are chosen by what the operator holds:
+- **Animations:** one shared set (`public/models/anims/rifle.glb`, 70 clips), retargeted onto every operator by bone name. Clips are chosen by what the operator holds:
   - **Rifle:** 8-way walk / run / sprint / crouch-walk, idle and aim idle, 3-phase jump, prone idle / forward / backward crawl, slide, reload (upper-body layer; *Prone Reloading* when prone), and 7 deaths (6 directional plus prone).
   - **Pistol:** idle, walk and run forward / back, strafe left / right, kneeling idle. Jumps play the airborne section of the pistol jump clips.
   - **Nothing in hand (grenade):** low crawl when prone.
   - **Unarmed (grenade in hand):** idle, walk forward, strafe left/right, jump, turn in place; backward low crawl with its start/stop clips.
   - **Also in use:** turn-in-place (standing, crouched, prone), prone sideways movement (the body turns with the prone turns, then crawls), stance transitions (crouch↔prone, prone→stand, pistol stand↔kneel), and upper-body one-shots (fire, hit reaction, grenade toss, plus the prone variants).
+  - **Ledges (braced hang set):** Idle To Braced Hang, the grab of Jumping To Hanging, Braced Hanging Idle, Braced Hang Shimmy Left/Right, Braced Hang To Crouch (climb over / mantle) and Braced Hang Drop To Standing. The exporter shifts each one so that they all hold the ledge at the same point, and records their head / hips / feet paths (`track` in `rifle.json`). The game uses those paths for the hitbox, the first-person eye and where the body lands.
+    - **Not used:** the free-hang set (Jump To Hang, Hanging Idle, Left/Right Shimmy, Free Hang Hop Left/Right, Freehang Drop, Braced To Free Hang, Free Hang To Braced). It hangs from overhangs with nothing for the feet, and every obstacle in these maps is a wall.
+    - **Not used:** Braced Hang (a leap down into a hang), Braced Hang Drop, and Braced Hang Hop Up/Left/Right (jumps between ledges; the maps have no stacked or neighbouring ledges to hop to yet).
   - **Missing, never substituted:** when a state has no clip the pose is held and `[anim] missing clip "…"` is logged once. Known gaps:
     - pistol crouch-walk, prone, reload, fire, hit and deaths
     - unarmed run, walk backward, crouch and death
@@ -97,9 +100,21 @@ The big singletons (`MAP`, `Game`, `Combat`, `UI`, `Net`) are each assembled in 
 |---|---|---|---|
 | **C** | crouch (slide if sprinting) | prone | crouch |
 | **Space** | jump | stand up | stand up |
-| **Shift (hold)** | run / sprint | crouch-run | — |
+| **Shift (hold)** | run / sprint | stand, run, crouch again on release | — |
 
-Standing up checks for headroom. From prone under a low ceiling you rise to a crouch if that's all that fits. **V** toggles third person, **F9** (dev builds only) drops a telemetry marker.
+Standing up checks for headroom.
+
+**Ledges.**
+- **Space facing a 1.2–1.9 m wall:** you climb straight over it.
+- **Space facing a 1.9–2.55 m wall:** you reach up and hang.
+- **Running jump into a ledge you can reach:** you catch it. Containers are the typical case.
+
+While hanging:
+- **W** or **Space** climbs over; hold W through the jump to go straight over.
+- **A** / **D** shimmies along the edge.
+- **S** or **C** lets go. You drop to standing when the ground is about a body length below, and fall otherwise.
+
+The weapon is slung while your hands are on the ledge. From prone under a low ceiling you rise to a crouch if that's all that fits. **V** toggles third person, **F9** (dev builds only) drops a telemetry marker.
 
 ## Gameplay rules worth knowing
 

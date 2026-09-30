@@ -30,6 +30,8 @@ export interface AnimInput {
   aiming: boolean;
   airborne: boolean;
   vy: number;
+  /* ledge hang / climb: this clip plays alone on the whole body at time t (player/ledge.ts) */
+  hang?: { clip: string; t: number } | null;
 }
 export interface DeathInfo { head: boolean; fromX?: number; fromZ?: number }
 
@@ -46,6 +48,7 @@ export class Animator {
   private upperOnly: BABYLON.AnimationGroupMask;
   private lowerOnly: BABYLON.AnimationGroupMask;
   reloadClip: string | null = null;
+  hanging = false;
   /* runs after animation, before the weapon is placed (first-person rig fitting) */
   prePlace: (() => void) | null = null;
   private rh: BABYLON.TransformNode; private lh: BABYLON.TransformNode;
@@ -97,8 +100,22 @@ export class Animator {
       if (!this.death) this.death = this.pickDeath(s, deathInfo);
       if (!this.inst.groups[this.death]){ this.freeze(this.death); return; }
       target[this.death] = 1;
+    } else if (s.hang){
+      this.death = null; this.hanging = true;
+      const n = s.hang.clip, g = this.inst.groups[n];
+      if (!g){ this.freeze(n); return; }
+      this.unfreeze();
+      if (this.upper) this.stopUpper();
+      this.turn = null; this.trans = null; this.jump = 'none'; this.lastStance = 0;
+      this.bodyYaw = s.yaw;
+      target[n] = 1;
+      /* follow the gameplay clock: (re)start the clip on change and correct drift */
+      const c = Models.clips[n], dur = c ? c.dur : 1, tt = c && c.loop ? s.hang.t % dur : Math.min(s.hang.t, dur - 1e-3);
+      if (!this.active.has(n)) this.start(n);
+      const a = g.animatables[0];
+      if (a && Math.abs((a.masterFrame - g.from) / 60 - tt) > .12) g.goToFrame(g.from + tt * 60);
     } else {
-      this.death = null;
+      this.death = null; this.hanging = false;
       const speed = Math.hypot(s.vx, s.vz);
       this.stanceChange(s);
       this.steerBody(s, speed, dt);
@@ -411,7 +428,7 @@ export class Animator {
     const wp = this.weapon, mk = this.markers;
     if (!wp) return;
     /* the gun is parented to the world (placed between the hands), so it must follow the body's visibility */
-    const shown = this.inst.root.isEnabled();
+    const shown = this.inst.root.isEnabled() && !this.hanging;       /* both hands are on the ledge: the gun is slung */
     if (wp.isEnabled() !== shown) wp.setEnabled(shown);
     if (!shown || !mk || !this.rh || !this.lh) return;
     const R = this.palm('Right'), L = this.palm('Left');
