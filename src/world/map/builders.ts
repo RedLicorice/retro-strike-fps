@@ -1,4 +1,4 @@
-import { PI, TAU, lerp, rndi } from '../../core/math';
+import { PI, TAU, lerp } from '../../core/math';
 
 /* procedural materials that are drawn with a prop model instead of a textured box (collider unchanged) */
 const PROP_MAT: Record<string, string> = { crate: 'crate', rusty: 'container', sand: 'sandbag' };
@@ -71,7 +71,7 @@ export const mapBuilders = {
 
   /* ---------------- module library ---------------- */
   modYard(R, cx, cz, s){
-    const n = 2 + rndi(4);
+    const n = 2 + Math.floor(R() * 4);
     for (let i = 0; i < n; i++){
       const w = 1.0 + R() * 1.1, d = 1.0 + R() * 1.1, h = R() < .45 ? 1.05 : 1.85;
       const x = cx + (R() - .5) * (s - w - .6), z = cz + (R() - .5) * (s - d - .6);
@@ -150,7 +150,7 @@ export const mapBuilders = {
     this.B('concDark', cx + hw - .1, cz, .22, rail, w * .35, py + .3);
     this.B('concDark', cx + hw - .1, cz + hw * .55, .22, rail, w * .35, py + .3);
     /* ramp up */
-    const dir = rndi(4);
+    const dir = Math.floor(R() * 4);
     const off = hw + 1.5;
     if (dir === 0) this.SLOPE('metal', cx - 1.1, cz - off - 2.6, cx + 1.1, cz - off, 0, py + .3, .3);
     if (dir === 1) this.SLOPE('metal', cx - 1.1, cz + off, cx + 1.1, cz + off + 2.6, py + .3, 0, .3);
@@ -179,11 +179,11 @@ export const mapBuilders = {
     };
     if (R() < .5){ seg(cx - hw, cz - hw, cx - hw, cz + hw * .4); seg(cx - hw, cz + hw, cx + hw * .5, cz + hw); }
     else { seg(cx - hw, cz - hw, cx + hw, cz - hw); seg(cx + hw, cz - hw, cx + hw, cz + hw * .3); }
-    for (let i = 0; i < 3 + rndi(3); i++) this.B('concDark', cx + (R() - .5) * 3.4, cz + (R() - .5) * 3.4, .7 + R() * .9, .35 + R() * .5, .7 + R() * .9, 0);
+    for (let i = 0; i < 3 + Math.floor(R() * 3); i++) this.B('concDark', cx + (R() - .5) * 3.4, cz + (R() - .5) * 3.4, .7 + R() * .9, .35 + R() * .5, .7 + R() * .9, 0);
   },
 
   modBarricade(R, cx, cz, s){
-    const n = 3 + rndi(3);
+    const n = 3 + Math.floor(R() * 3);
     for (let i = 0; i < n; i++){
       const ang = R() * PI, len = 2.2 + R() * 1.8, h = R() < .5 ? 1.15 : 1.9;
       const dx = Math.cos(ang) * len / 2, dz = Math.sin(ang) * len / 2;
@@ -222,7 +222,7 @@ export const mapBuilders = {
 
   modRamp(R, cx, cz, s){
     const hw = (s - 1.4) / 2, h = 2.1 + R() * 1.1;
-    const dir = rndi(4);
+    const dir = Math.floor(R() * 4);
     if (dir === 0){ this.SLOPE('concrete', cx - 1.4, cz - hw - 3.0, cx + 1.4, cz - hw, 0, h, .35); this.B('metal', cx, cz, 3.0, .32, hw * 2, h); }
     if (dir === 1){ this.SLOPE('concrete', cx - 1.4, cz + hw, cx + 1.4, cz + hw + 3.0, h, 0, .35); this.B('metal', cx, cz, 3.0, .32, hw * 2, h); }
     if (dir === 2){ this.SLOPE('concrete', cx - hw - 3.0, cz - 1.4, cx - hw, cz + 1.4, 0, h, .35); this.B('metal', cx, cz, hw * 2, .32, 3.0, h); }

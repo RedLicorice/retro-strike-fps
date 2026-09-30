@@ -9,7 +9,10 @@ export const mapNav = {
       const x = -this.half + res / 2 + i * res, z = -this.half + res / 2 + j * res;
       const y = this.standable(x, z);
       const k = j * n + i; gy[k] = y;
-      open[k] = (!this.headBlocked(x, z, y, 1.9) && this.inside(x, z)) ? 1 : 0;
+      /* a body (r .38) must fit, not just the cell centre: sample the centre and a ring at .45 m */
+      let clear = this.inside(x, z) && !this.headBlocked(x, z, y, 1.9);
+      for (let q = 0; clear && q < 8; q++){ const a = q * Math.PI / 4; if (this.headBlocked(x + Math.cos(a) * .45, z + Math.sin(a) * .45, y, 1.9)) clear = false; }
+      open[k] = clear ? 1 : 0;
     }
     this.nav = { res: res, n: n, open: open, gy: gy };
   },

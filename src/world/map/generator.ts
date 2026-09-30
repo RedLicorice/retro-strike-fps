@@ -1,4 +1,4 @@
-import { TAU, makeSeed, rndi, rng, sHash } from '../../core/math';
+import { TAU, makeSeed, rng, sHash } from '../../core/math';
 
 export const mapGenerator = {
   /* ---------------- generation ---------------- */
@@ -54,7 +54,7 @@ export const mapGenerator = {
 
     /* scatter corridor clutter that never blocks more than 45% of a lane */
     for (let k = 0; k < 16; k++){
-      const i = rndi(W), j = rndi(H);
+      const i = Math.floor(R() * W), j = Math.floor(R() * H);
       if (i % 2 === 1 && j % 2 === 1) continue;
       const cx = cellX(i), cz = cellZ(j);
       const t = R();

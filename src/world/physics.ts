@@ -23,6 +23,17 @@ export function worldMove(p, v, r, h, dt){
     }
     return null;
   };
+  /* depenetrate: something spawned/teleported/rebuilt into a box would otherwise block every axis forever.
+     Step up if it's low enough, else push out horizontally along the shallowest side. */
+  for (let it = 0; it < 4; it++){
+    const b = blocked(p.x, p.y, p.z);
+    if (!b) break;
+    const dy = b.y1 - p.y;
+    if (dy > 0 && dy <= maxStep && !blocked(p.x, b.y1 + .03, p.z)){ p.y = b.y1 + .02; continue; }
+    const px0 = p.x + r - b.x0, px1 = b.x1 - (p.x - r), pz0 = p.z + r - b.z0, pz1 = b.z1 - (p.z - r);
+    const m = Math.min(px0, px1, pz0, pz1) + .01;
+    if (m === px0 + .01) p.x -= m; else if (m === px1 + .01) p.x += m; else if (m === pz0 + .01) p.z -= m; else p.z += m;
+  }
   for (let s = 0; s < n; s++){
     let nx = p.x + v.x * sdt;
     if (nx < -lim || nx > lim){ v.x = 0; nx = clamp(nx, -lim, lim); }
