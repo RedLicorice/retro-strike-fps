@@ -1,3 +1,5 @@
+import { FPHands } from '../render/fpHands';
+import { Models, WeaponMarkers } from '../assets/models';
 import { FPArms } from '../render/fpArms';
 import { track } from '../dev/telemetry';
 import * as BABYLON from 'babylonjs';
@@ -20,6 +22,8 @@ import { reloadTime } from '../data/weapons';
 import { UI } from '../ui/index';
 
 /* ------------------------------ C4. WEAPON RUNTIME ------------------------------ */
+const FP_HANDS_RIG = false;
+
 /* aim-in/out takes 70% of each weapon's adsT (30% faster than the base data) */
 const ADS_TIME_SCALE = .7;
 
@@ -27,7 +31,7 @@ export const Wep = {
   ids: ['ak47', 'm1911', 'frag'], slot: 0, def: null, vm: null, vmPos: V3(.24, -.22, .62), vmRot: V3(0, 0, 0),
   ammo: {} as Record<string, { mag: number; res: number }>, aimT: 0, aiming: false, recP: 0, recY: 0, kick: 0, kickR: 0, fireT: 0, trigger: false,
   reloadT: 0, reloadDur: 0, reloadStage: 0, swapT: 0, spray: 0, sprayT: 0, lastShot: 0, meleeT: 0, meleeDir: 1,
-  throwCd: 0, fp: null as FPArms | null, thCount: {} as Record<string, number>, vmMuz: null, adsPos: V3(0, 0, 0), adsRot: V3(0, 0, 0), scoped: false, dryT: 0,
+  throwCd: 0, fp: null as FPArms | null, hands: null as FPHands | null, markers: null as WeaponMarkers | null, thCount: {} as Record<string, number>, vmMuz: null, adsPos: V3(0, 0, 0), adsRot: V3(0, 0, 0), scoped: false, dryT: 0,
 
   init(loadout){
     /* experimental: first-person arms from the operator model (the rifle clips are third-person poses) */
@@ -49,7 +53,10 @@ export const Wep = {
     const d = this.defOf(this.slot); this.def = d; if (!d) return;
     const firearm = d.slot !== 2;
     if (this.fp) this.fp.setWeapon(firearm ? d.id : null);
-    const view = firearm && !this.fp ? buildViewWeapon(d) : null;
+    /* first-person arms rig (assets/hands): off until a rig with weapon-hold poses is available; its finger IK
+       folds the 820-tri hands (see README). Box gloves are used meanwhile. */
+    if (FP_HANDS_RIG && !this.hands && Models.hands) this.hands = FPHands.create();
+    const view = firearm && !this.fp ? buildViewWeapon(d, !this.hands) : null;
     if (firearm && this.fp){
       /* operator's own arms hold the gun; `vm` is just the pose they are fitted to */
       this.vm = new BABYLON.TransformNode('vmPose', ctx.scene);
@@ -57,8 +64,8 @@ export const Wep = {
       const pl = viewPlacement(d);
       this.vmPos.copyFrom(pl.hip); this.adsPos.copyFrom(pl.ads);
     } else if (view){
-      /* fallback (no character model): weapon GLB with box gloves */
-      this.vm = view.root; this.vmMuz = view.muzzle;
+      /* weapon GLB, held by the first-person arms rig (box gloves if the rig is missing) */
+      this.vm = view.root; this.vmMuz = view.muzzle; this.markers = Models.markers[d.id];
       const pl = viewPlacement(d);
       this.vmPos.copyFrom(pl.hip); this.adsPos.copyFrom(pl.ads);
     } else {
@@ -252,6 +259,7 @@ export const Wep = {
     if (!Player.alive || Game.state !== 'play'){
       if (this.vm) this.vm.setEnabled(false);
       if (this.fp) this.fp.setEnabled(false);
+      if (this.hands) this.hands.setEnabled(false);
       /* dying cancels a reload in progress (and its HUD bar) */
       if (this.reloadT > 0 || this.reloadStage){ this.reloadT = 0; this.reloadStage = 0; UI.reloadBar(-1); }
       $('scopeOv').classList.remove('on');
@@ -331,6 +339,16 @@ export const Wep = {
     const showFP = !hideVM && ctx.view3p < .5;
     if (this.fp){ this.fp.setEnabled(showFP && d.slot !== 2); this.fp.update(dt); }
     vm.setEnabled(showFP);
+    /* first-person arms: IK onto the gun (pistols: support hand cups the grip; grenades: one hand) */
+    if (this.hands){
+      const on = showFP && !this.fp;
+      this.hands.setEnabled(on);
+      if (on){
+        vm.computeWorldMatrix(true);
+        /* baked holds: rifle (support hand under the fore-end), pistol (cupped), grenade (one hand) */
+        this.hands.hold(d.slot === 2 ? 'grenade' : d.slot === 1 ? 'pistol' : 'rifle', BABYLON.Vector3.TransformCoordinates(BABYLON.Vector3.Zero(), vm.getWorldMatrix()));
+      }
+    }
     $('scopeOv').classList.toggle('on', this.scoped && A > .93 && ctx.view3p < .5);
   }
 };

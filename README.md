@@ -29,13 +29,19 @@ In dev builds, `window.__rs` exposes `{ ctx, Game, Player, MAP, Wep, Combat, Inp
   - **Rifle:** 8-way walk / run / sprint / crouch-walk, idle and aim idle, 3-phase jump, prone idle / forward / backward crawl, slide, reload (upper-body layer; *Prone Reloading* when prone), and 7 deaths (6 directional plus prone).
   - **Pistol:** idle, walk and run forward / back, strafe left / right, kneeling idle. Jumps play the airborne section of the pistol jump clips.
   - **Nothing in hand (grenade):** low crawl when prone.
+  - **Unarmed (grenade in hand):** idle, walk forward, strafe left/right, jump, turn in place; backward low crawl with its start/stop clips.
+  - **Also in use:** turn-in-place (standing, crouched, prone), prone sideways movement (the body turns with the prone turns, then crawls), stance transitions (crouch↔prone, prone→stand, pistol stand↔kneel), and upper-body one-shots (fire, hit reaction, grenade toss, plus the prone variants).
   - **Missing, never substituted:** when a state has no clip the pose is held and `[anim] missing clip "…"` is logged once. Known gaps:
-    - pistol crouch-walk, pistol prone, pistol reload, pistol deaths, and a run-speed pistol strafe (the walk-speed strafe is played up to 1.7× faster)
-    - unarmed idle, walk, run, jump and death
-    - low-crawl backward and sideways; prone strafe left and right
+    - pistol crouch-walk, prone, reload, fire, hit and deaths
+    - unarmed run, walk backward, crouch and death
+    - rifle stand↔crouch transitions
   - Drop clips into `assets/animations/` under those names and rebuild; they're picked up automatically.
 - **Weapons (15):** GLBs with grip at the origin, muzzle toward +Z, and `muzzle` / `sight` / `fore` marker nodes that drive ADS alignment, tracers and two-handed third-person holds. Stats come from the real guns (calibre, rate of fire, capacity, weight → mobility); see `src/data/weapons.ts`.
 - **Views:** first person, or third person over the shoulder (**V**, settings or touch **CAM**). Aiming down sights always uses first-person sights.
+
+### First-person arms
+
+`assets/hands` (820-tri arms rig with its own IK) is exported by `tools/asset-pipeline/export_hands.py` with three baked holds (`src/render/fpHands.ts`). It is **off** (`FP_HANDS_RIG` in `weaponController.ts`): the rig has no weapon-hold poses, and curling its fingers around a grip folds the low-poly hand mesh (`docs/screenshots/fp-hands-rig-attempt.png`). The viewmodel uses simple gloves until an arms rig with rifle/pistol holds is available.
 
 ### Rebuilding models
 

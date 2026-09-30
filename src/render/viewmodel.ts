@@ -12,7 +12,7 @@ export interface ViewWeapon {
   sight: BABYLON.Vector3;
 }
 
-export function buildViewWeapon(def: any): ViewWeapon | null {
+export function buildViewWeapon(def: any, gloves = true): ViewWeapon | null {
   const model = Models.weapon(def.id, true);
   const mk = Models.markers[def.id];
   if (!model || !mk) return null;
@@ -20,20 +20,22 @@ export function buildViewWeapon(def: any): ViewWeapon | null {
   model.parent = root;
   const glove = armMat('vmGlove', [.07, .07, .065]), sleeve = armMat('vmSleeve', [.085, .09, .065]);
 
+  if (gloves){
   /* right hand wraps the grip; forearm runs back toward the lower-right of the screen */
-  boxM(.052, .085, .075, root, glove, .004, -.03, -.005, -.3);
-  boxM(.03, .028, .05, root, glove, -.018, .012, .03, 0, .35);                         /* trigger finger */
-  boxM(.06, .06, .24, root, sleeve, .03, -.09, -.16, -.55, -.12);
+    boxM(.052, .085, .075, root, glove, .004, -.03, -.005, -.3);
+    boxM(.03, .028, .05, root, glove, -.018, .012, .03, 0, .35);                         /* trigger finger */
+    boxM(.06, .06, .24, root, sleeve, .03, -.09, -.16, -.55, -.12);
 
-  if (mk.fore){
-    /* support hand under the fore-end, arm angling in from the left */
-    const f = mk.fore;
-    boxM(.058, .05, .095, root, glove, f.x - .004, f.y - .028, f.z, .08);
-    boxM(.058, .058, .24, root, sleeve, f.x - .085, f.y - .1, f.z - .15, -.44, .64);
-  } else {
-    /* pistols: support hand cups the firing hand */
-    boxM(.05, .07, .07, root, glove, -.03, -.05, .01, -.25, .2);
-    boxM(.06, .06, .24, root, sleeve, -.1, -.1, -.15, -.5, .5);
+    if (mk.fore){
+      /* support hand under the fore-end, arm angling in from the left */
+      const f = mk.fore;
+      boxM(.058, .05, .095, root, glove, f.x - .004, f.y - .028, f.z, .08);
+      boxM(.058, .058, .24, root, sleeve, f.x - .085, f.y - .1, f.z - .15, -.44, .64);
+    } else {
+      /* pistols: support hand cups the firing hand */
+      boxM(.05, .07, .07, root, glove, -.03, -.05, .01, -.25, .2);
+      boxM(.06, .06, .24, root, sleeve, -.1, -.1, -.15, -.5, .5);
+    }
   }
   root.getChildMeshes().forEach(m => { m.renderingGroupId = 1; m.isPickable = false; });
   return { root, muzzle: mk.muzzle.clone(), sight: mk.sight.clone() };
