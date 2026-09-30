@@ -1,0 +1,585 @@
+{
+ "fps": 30,
+ "clips": {
+  "walk_f": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 1.927,
+   "src": "rifle_pro/walk forward.fbx"
+  },
+  "walk_b": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 1.927,
+   "src": "rifle_pro/walk backward.fbx"
+  },
+  "walk_l": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 1.927,
+   "src": "rifle_pro/walk left.fbx"
+  },
+  "walk_r": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 1.927,
+   "src": "rifle_pro/walk right.fbx"
+  },
+  "walk_fl": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 1.927,
+   "src": "rifle_pro/walk forward left.fbx"
+  },
+  "walk_fr": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 1.927,
+   "src": "rifle_pro/walk forward right.fbx"
+  },
+  "walk_bl": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 1.927,
+   "src": "rifle_pro/walk backward left.fbx"
+  },
+  "walk_br": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 1.927,
+   "src": "rifle_pro/walk backward right.fbx"
+  },
+  "run_f": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 4.818,
+   "src": "rifle_pro/run forward.fbx"
+  },
+  "run_b": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 4.818,
+   "src": "rifle_pro/run backward.fbx"
+  },
+  "run_l": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 4.818,
+   "src": "rifle_pro/run left.fbx"
+  },
+  "run_r": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 4.818,
+   "src": "rifle_pro/run right.fbx"
+  },
+  "run_fl": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 4.818,
+   "src": "rifle_pro/run forward left.fbx"
+  },
+  "run_fr": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 4.818,
+   "src": "rifle_pro/run forward right.fbx"
+  },
+  "run_bl": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 4.818,
+   "src": "rifle_pro/run backward left.fbx"
+  },
+  "run_br": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 4.818,
+   "src": "rifle_pro/run backward right.fbx"
+  },
+  "sprint_f": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 7.226,
+   "src": "rifle_pro/sprint forward.fbx"
+  },
+  "sprint_b": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 7.226,
+   "src": "rifle_pro/sprint backward.fbx"
+  },
+  "sprint_l": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 7.226,
+   "src": "rifle_pro/sprint left.fbx"
+  },
+  "sprint_r": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 7.226,
+   "src": "rifle_pro/sprint right.fbx"
+  },
+  "sprint_fl": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 7.227,
+   "src": "rifle_pro/sprint forward left.fbx"
+  },
+  "sprint_fr": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 7.227,
+   "src": "rifle_pro/sprint forward right.fbx"
+  },
+  "sprint_bl": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 7.226,
+   "src": "rifle_pro/sprint backward left.fbx"
+  },
+  "sprint_br": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 7.227,
+   "src": "rifle_pro/sprint backward right.fbx"
+  },
+  "crouch_f": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 2.045,
+   "src": "rifle_pro/walk crouching forward.fbx"
+  },
+  "crouch_b": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 2.045,
+   "src": "rifle_pro/walk crouching backward.fbx"
+  },
+  "crouch_l": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 2.045,
+   "src": "rifle_pro/walk crouching left.fbx"
+  },
+  "crouch_r": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 2.045,
+   "src": "rifle_pro/walk crouching right.fbx"
+  },
+  "crouch_fl": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 2.045,
+   "src": "rifle_pro/walk crouching forward left.fbx"
+  },
+  "crouch_fr": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 2.045,
+   "src": "rifle_pro/walk crouching forward right.fbx"
+  },
+  "crouch_bl": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 2.045,
+   "src": "rifle_pro/walk crouching backward left.fbx"
+  },
+  "crouch_br": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 2.045,
+   "src": "rifle_pro/walk crouching backward right.fbx"
+  },
+  "idle": {
+   "loop": true,
+   "dur": 2.1,
+   "speed": 0.0,
+   "src": "rifle_pro/idle.fbx"
+  },
+  "idle_aim": {
+   "loop": true,
+   "dur": 2.1,
+   "speed": 0.0,
+   "src": "rifle_pro/idle aiming.fbx"
+  },
+  "crouch_idle": {
+   "loop": true,
+   "dur": 2.1,
+   "speed": 0.0,
+   "src": "rifle_pro/idle crouching.fbx"
+  },
+  "crouch_idle_aim": {
+   "loop": true,
+   "dur": 2.1,
+   "speed": 0.0,
+   "src": "rifle_pro/idle crouching aiming.fbx"
+  },
+  "jump_up": {
+   "loop": false,
+   "dur": 0.5333,
+   "speed": 0,
+   "src": "rifle_pro/jump up.fbx"
+  },
+  "jump_loop": {
+   "loop": true,
+   "dur": 1.0,
+   "speed": 0.0,
+   "src": "rifle_pro/jump loop.fbx"
+  },
+  "jump_down": {
+   "loop": false,
+   "dur": 0.6667,
+   "speed": 0,
+   "src": "rifle_pro/jump down.fbx"
+  },
+  "death_front": {
+   "loop": false,
+   "dur": 3.4333,
+   "speed": 0,
+   "src": "rifle_pro/death from the front.fbx"
+  },
+  "death_back": {
+   "loop": false,
+   "dur": 2.9667,
+   "speed": 0,
+   "src": "rifle_pro/death from the back.fbx"
+  },
+  "death_right": {
+   "loop": false,
+   "dur": 3.3,
+   "speed": 0,
+   "src": "rifle_pro/death from right.fbx"
+  },
+  "death_front_head": {
+   "loop": false,
+   "dur": 2.8333,
+   "speed": 0,
+   "src": "rifle_pro/death from front headshot.fbx"
+  },
+  "death_back_head": {
+   "loop": false,
+   "dur": 3.7,
+   "speed": 0,
+   "src": "rifle_pro/death from back headshot.fbx"
+  },
+  "death_crouch_head": {
+   "loop": false,
+   "dur": 1.9,
+   "speed": 0,
+   "src": "rifle_pro/death crouching headshot front.fbx"
+  },
+  "prone_idle": {
+   "loop": true,
+   "dur": 4.9333,
+   "speed": 0.0,
+   "src": "rifle_prone/Prone Idle.fbx"
+  },
+  "prone_f": {
+   "loop": true,
+   "dur": 2.3333,
+   "speed": 0.248,
+   "src": "rifle_prone/Prone Forward.fbx"
+  },
+  "prone_b": {
+   "loop": true,
+   "dur": 1.9,
+   "speed": 0.301,
+   "src": "rifle_prone/Moving Backward In Prone Position.fbx"
+  },
+  "death_prone": {
+   "loop": false,
+   "dur": 1.8667,
+   "speed": 0,
+   "src": "rifle_prone/Prone Death.fbx"
+  },
+  "lowcrawl_f": {
+   "loop": true,
+   "dur": 2.3333,
+   "speed": 0.625,
+   "src": "Low Crawl.fbx"
+  },
+  "slide": {
+   "loop": false,
+   "dur": 1.5333,
+   "speed": 0,
+   "src": "Running Slide.fbx"
+  },
+  "pistol_idle": {
+   "loop": true,
+   "dur": 1.3333,
+   "speed": 0.0,
+   "src": "pistol_handgun_locomotion/pistol idle.fbx"
+  },
+  "pistol_walk_f": {
+   "loop": true,
+   "dur": 0.8,
+   "speed": 2.667,
+   "src": "pistol_handgun_locomotion/pistol walk.fbx"
+  },
+  "pistol_walk_b": {
+   "loop": true,
+   "dur": 1.0333,
+   "speed": 1.466,
+   "src": "pistol_handgun_locomotion/pistol walk backward.fbx"
+  },
+  "pistol_walk_l": {
+   "loop": true,
+   "dur": 0.5667,
+   "speed": 2.248,
+   "src": "pistol_handgun_locomotion/pistol strafe.fbx"
+  },
+  "pistol_walk_r": {
+   "loop": true,
+   "dur": 0.6,
+   "speed": 2.524,
+   "src": "pistol_handgun_locomotion/pistol strafe (2).fbx"
+  },
+  "pistol_run_f": {
+   "loop": true,
+   "dur": 0.5,
+   "speed": 4.957,
+   "src": "pistol_handgun_locomotion/pistol run.fbx"
+  },
+  "pistol_run_b": {
+   "loop": true,
+   "dur": 0.5333,
+   "speed": 3.445,
+   "src": "pistol_handgun_locomotion/pistol run backward.fbx"
+  },
+  "pistol_crouch_idle": {
+   "loop": true,
+   "dur": 3.8,
+   "speed": 0.0,
+   "src": "pistol_handgun_locomotion/pistol kneeling idle.fbx"
+  },
+  "pistol_jump": {
+   "loop": false,
+   "dur": 2.0,
+   "speed": 0,
+   "src": "pistol_handgun_locomotion/pistol jump.fbx",
+   "air": [
+    0.8,
+    1.367
+   ]
+  },
+  "pistol_jump_run": {
+   "loop": false,
+   "dur": 0.8,
+   "speed": 0,
+   "src": "pistol_handgun_locomotion/pistol jump (2).fbx",
+   "air": [
+    0.033,
+    0.533
+   ]
+  },
+  "unarmed_idle": {
+   "loop": true,
+   "dur": 8.3333,
+   "speed": 0.0,
+   "src": "basic_locomotion/idle.fbx"
+  },
+  "unarmed_walk_f": {
+   "loop": true,
+   "dur": 1.0333,
+   "speed": 1.662,
+   "src": "basic_locomotion/walking.fbx"
+  },
+  "unarmed_walk_l": {
+   "loop": true,
+   "dur": 1.0333,
+   "speed": 1.724,
+   "src": "basic_locomotion/left strafe walking.fbx"
+  },
+  "unarmed_walk_r": {
+   "loop": true,
+   "dur": 1.0333,
+   "speed": 1.724,
+   "src": "basic_locomotion/right strafe walking.fbx"
+  },
+  "unarmed_jump": {
+   "loop": false,
+   "dur": 2.1667,
+   "speed": 0,
+   "src": "basic_locomotion/jump.fbx",
+   "air": [
+    0.8,
+    1.267
+   ]
+  },
+  "unarmed_turn_l": {
+   "loop": false,
+   "dur": 0.9333,
+   "speed": 0,
+   "src": "basic_locomotion/left turn 90.fbx",
+   "turn": 90.0
+  },
+  "unarmed_turn_r": {
+   "loop": false,
+   "dur": 0.9333,
+   "speed": 0,
+   "src": "basic_locomotion/right turn 90.fbx",
+   "turn": -102.6
+  },
+  "lowcrawl_b": {
+   "loop": true,
+   "dur": 0.9667,
+   "speed": 0.443,
+   "src": "rifle_prone/Crawl Backwards In Prone.fbx"
+  },
+  "lowcrawl_b_start": {
+   "loop": false,
+   "dur": 0.6333,
+   "speed": 0,
+   "src": "rifle_prone/Prone Backwards Start.fbx"
+  },
+  "lowcrawl_b_stop": {
+   "loop": false,
+   "dur": 1.2333,
+   "speed": 0,
+   "src": "rifle_prone/Prone Backwards Stop.fbx"
+  },
+  "turn_l": {
+   "loop": false,
+   "dur": 1.0,
+   "speed": 0,
+   "src": "rifle_pro/turn 90 left.fbx",
+   "turn": 90.0
+  },
+  "turn_r": {
+   "loop": false,
+   "dur": 1.0,
+   "speed": 0,
+   "src": "rifle_pro/turn 90 right.fbx",
+   "turn": -90.0
+  },
+  "crouch_turn_l": {
+   "loop": false,
+   "dur": 1.2667,
+   "speed": 0,
+   "src": "rifle_pro/crouching turn 90 left.fbx",
+   "turn": 90.0
+  },
+  "crouch_turn_r": {
+   "loop": false,
+   "dur": 1.2667,
+   "speed": 0,
+   "src": "rifle_pro/crouching turn 90 right.fbx",
+   "turn": -90.0
+  },
+  "prone_turn_l": {
+   "loop": false,
+   "dur": 1.0333,
+   "speed": 0,
+   "src": "rifle_prone/Prone Left Turn (1).fbx",
+   "turn": 40.8
+  },
+  "prone_turn_r": {
+   "loop": false,
+   "dur": 1.3,
+   "speed": 0,
+   "src": "rifle_prone/Prone Right Turn (1).fbx",
+   "turn": -44.5
+  },
+  "t_crouch_prone": {
+   "loop": false,
+   "dur": 1.8,
+   "speed": 0,
+   "src": "rifle_prone/Crouch To Prone.fbx",
+   "span": [
+    0.4,
+    1.1
+   ]
+  },
+  "t_prone_crouch": {
+   "loop": false,
+   "dur": 1.8,
+   "speed": 0,
+   "src": "rifle_prone/Prone To Crouch Transition.fbx",
+   "span": [
+    0.133,
+    0.367
+   ]
+  },
+  "t_prone_stand": {
+   "loop": false,
+   "dur": 7.6,
+   "speed": 0,
+   "src": "rifle_prone/Prone to Standing Getting Up.fbx",
+   "span": [
+    1.667,
+    6.2
+   ]
+  },
+  "pistol_t_stand_crouch": {
+   "loop": false,
+   "dur": 1.0,
+   "speed": 0,
+   "src": "pistol_handgun_locomotion/pistol stand to kneel.fbx",
+   "span": [
+    0.2,
+    0.567
+   ]
+  },
+  "pistol_t_crouch_stand": {
+   "loop": false,
+   "dur": 1.3667,
+   "speed": 0,
+   "src": "pistol_handgun_locomotion/pistol kneel to stand.fbx",
+   "span": [
+    0.233,
+    0.633
+   ]
+  },
+  "fire": {
+   "loop": false,
+   "dur": 0.2667,
+   "speed": 0,
+   "src": "basic_shooter/firing rifle.fbx"
+  },
+  "prone_fire": {
+   "loop": false,
+   "dur": 0.4333,
+   "speed": 0,
+   "src": "rifle_prone/Prone Firing Rifle.fbx"
+  },
+  "hit": {
+   "loop": false,
+   "dur": 0.4333,
+   "speed": 0,
+   "src": "basic_shooter/hit reaction.fbx"
+  },
+  "prone_hit": {
+   "loop": false,
+   "dur": 1.2333,
+   "speed": 0,
+   "src": "rifle_prone/Rifle Prone Hit Reaction.fbx"
+  },
+  "throw": {
+   "loop": false,
+   "dur": 3.2,
+   "speed": 0,
+   "src": "basic_shooter/toss grenade.fbx"
+  },
+  "prone_throw": {
+   "loop": false,
+   "dur": 3.5,
+   "speed": 0,
+   "src": "rifle_prone/Prone Throw Grenade.fbx"
+  },
+  "reload": {
+   "loop": false,
+   "dur": 3.3,
+   "speed": 0,
+   "src": "basic_shooter/reloading.fbx"
+  },
+  "prone_reload": {
+   "loop": false,
+   "dur": 6.4,
+   "speed": 0,
+   "src": "rifle_prone/Prone Reloading.fbx"
+  }
+ }
+}

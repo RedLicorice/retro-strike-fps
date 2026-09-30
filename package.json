@@ -1,0 +1,21 @@
+{
+  "name": "retro-strike-fps",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "description": "PS2-era procedural CQB FPS — Babylon.js + serverless WebRTC P2P",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "babylonjs": "8.56.2",
+    "babylonjs-loaders": "8.56.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0"
+  }
+}

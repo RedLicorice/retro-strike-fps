@@ -1,0 +1,17 @@
+[
+ {"id":"ak47",    "src":"assault/AK47/BLEND/AK47.blend",                  "len":0.880, "grip":[0.31,0.40], "bore":0.81, "sight":0.93, "fore":[0.62,0.76]},
+ {"id":"m4a1",    "src":"assault/M4A1/BLEND/M4A1.blend",                  "len":0.838, "grip":[0.32,0.42], "bore":0.76, "sight":0.88, "fore":[0.62,0.72]},
+ {"id":"scar",    "src":"assault/SCAR/BLEND/SCAR.blend",                  "len":0.965, "grip":[0.37,0.36], "bore":0.62, "sight":0.88, "fore":[0.65,0.62]},
+ {"id":"mp5",     "src":"smg/MP5/BLEND/MP5.blend",                        "len":0.680, "grip":[0.40,0.38], "bore":0.73, "sight":0.90, "fore":[0.72,0.70]},
+ {"id":"mp7",     "src":"smg/MP7/BLEND/MP7.blend",                        "len":0.638, "grip":[0.55,0.40], "bore":0.68, "sight":0.94, "fore":[0.81,0.45]},
+ {"id":"vector",  "src":"smg/Vector/BLEND/Vector.blend",                  "len":0.620, "grip":[0.44,0.60], "bore":0.72, "sight":0.93, "fore":[0.70,0.62]},
+ {"id":"awp",     "src":"sniper/AWP/BLEND/AWP.blend",                     "len":1.180, "grip":[0.25,0.48], "bore":0.64, "sight":0.87, "fore":[0.52,0.60]},
+ {"id":"r700",    "src":"rifle/Hunting Rifle/BLEND/Hunting Rifle.blend",  "len":1.070, "grip":[0.26,0.55], "bore":0.74, "sight":0.93, "fore":[0.55,0.62]},
+ {"id":"m336",    "src":"rifle/Lever Action/BLEND/Lever Action.blend1",   "len":0.981, "grip":[0.33,0.64], "bore":0.90, "sight":0.94, "fore":[0.60,0.80]},
+ {"id":"m1014",   "src":"shotgun/Auto Shotgun/BLEND/Auto Shotgun.blend",  "len":1.010, "grip":[0.31,0.30], "bore":0.83, "sight":0.93, "fore":[0.60,0.72]},
+ {"id":"m500",    "src":"shotgun/Mossberg Shotgun/BLEND/MossbergShotgun.blend", "len":1.003, "grip":[0.27,0.60], "bore":0.88, "sight":0.97, "fore":[0.75,0.72]},
+ {"id":"cruiser", "src":"shotgun/Pump Shotgun/BLEND/Pump Shotgun.blend",  "len":0.725, "grip":[0.10,0.30], "bore":0.87, "sight":0.95, "fore":[0.66,0.68]},
+ {"id":"m1911",   "src":"gun/1911/BLEND/1911.blend",                      "len":0.216, "grip":[0.22,0.45], "bore":0.80, "sight":0.96},
+ {"id":"usp",     "src":"smg/USP/BLEND/USP.blend",                        "len":0.194, "grip":[0.20,0.40], "bore":0.82, "sight":0.97},
+ {"id":"ruger",   "src":"gun/Ruger 22/BLEND/Ruger 22.blend",              "len":0.248, "grip":[0.17,0.40], "bore":0.87, "sight":0.98}
+]

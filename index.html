@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0a0c08">
+<title>RETROSTRIKE // CQB Arena — Babylon.js P2P FPS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="crt"><div class="scan"></div><div class="flick"></div><div class="noise"></div><div class="vig"></div></div>
+
+<div id="ui">
+
+  <!-- ============ BOOT ============ -->
+  <div id="boot" class="screen">
+    <div class="bwrap">
+      <div class="brandTag">BABYLON.JS // WEBGL // WEBRTC P2P</div>
+      <div class="blogo">RETROSTRIKE</div>
+      <div class="bbar"><i id="bootBar"></i></div>
+      <div class="bstat" id="bootStat">INITIALIZING RENDER DEVICE...</div>
+      <div class="btip" id="bootTip">TIP: Sprint + Crouch triggers a slide — break line of sight for 3s and your health regenerates.</div>
+    </div>
+  </div>
+
+  <!-- ============ MAIN MENU ============ -->
+  <div id="menu" class="screen hidden">
+    <div id="menuTop">
+      <div>
+        <div class="brandTag">SERVERLESS CQB ARENA // BUILD 1.0.7</div>
+        <h1 class="brandTitle">RETRO<span>STRIKE</span></h1>
+        <div class="brandSub">PROCEDURAL ARENAS &bull; HOST-AUTHORITATIVE P2P &bull; WEAPON MASTERY &bull; <b id="menuSeedTag">SEED ----</b></div>
+      </div>
+      <div class="topStats">
+        <div class="stat"><u>KILLS</u><b id="stKills">0</b></div>
+        <div class="stat"><u>K/D</u><b id="stKD">0.00</b></div>
+        <div class="stat"><u>HEADSHOT %</u><b id="stHS">0</b></div>
+        <div class="stat"><u>BEST SCORE</u><b id="stBest">0</b></div>
+        <div class="stat"><u>WAVES</u><b id="stWave">0</b></div>
+        <div class="stat"><u>FPS</u><b id="stFps">60</b></div>
+      </div>
+    </div>
+
+    <div id="menuMain">
+      <div class="colL">
+        <div class="panel" data-rev>
+          <div class="ptitle"><span class="dot"></span>SELECT GAME MODE <i>// 03 PROFILES</i></div>
+          <div id="modeList" style="display:flex;flex-direction:column;gap:7px"></div>
+        </div>
+
+        <div class="panel" data-rev>
+          <div class="ptitle"><span class="dot"></span>MATCH SETUP</div>
+          <div class="row" style="margin-bottom:10px">
+            <div class="field"><label>CALLSIGN</label><input id="inName" maxlength="14" placeholder="VIPER"></div>
+            <div class="field"><label>ARENA SEED</label><input id="inSeed" maxlength="16" placeholder="random"></div>
+          </div>
+          <div class="row" style="margin-bottom:12px">
+            <div class="field"><label>BOTS (FILL TO 8)</label><input id="inBots" type="number" min="0" max="7" value="5"></div>
+            <div class="field"><label>BOT SKILL</label><select id="inSkill"><option value="0">RECRUIT</option><option value="1" selected>VETERAN</option><option value="2">ELITE</option></select></div>
+            <div class="field"><label>SCORE LIMIT</label><input id="inLimit" type="number" min="5" max="100" value="25"></div>
+          </div>
+          <div class="row">
+            <button class="btn hot" id="btnDeploy" style="flex:1">DEPLOY &raquo;</button>
+            <button class="btn ghost" id="btnLobby">MULTIPLAYER</button>
+            <button class="btn ghost" id="btnReseed">REROLL SEED</button>
+          </div>
+        </div>
+
+        <div class="panel" data-rev>
+          <div class="ptitle"><span class="dot"></span>CONTROLS <i>// DESKTOP</i></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:4px 16px">
+            <div class="kv"><span>MOVE</span><b>W A S D</b></div>
+            <div class="kv"><span>SPRINT</span><b>SHIFT</b></div>
+            <div class="kv"><span>JUMP</span><b>SPACE</b></div>
+            <div class="kv"><span>CROUCH → PRONE → CROUCH</span><b>C</b></div>
+            <div class="kv"><span>SLIDE (WHILE SPRINTING)</span><b>C</b></div>
+            <div class="kv"><span>STAND UP (CROUCHED / PRONE)</span><b>SPACE</b></div>
+            <div class="kv"><span>RUN FROM CROUCH (BACK TO CROUCH ON RELEASE)</span><b>SHIFT</b></div>
+            <div class="kv"><span>FIRE / ADS</span><b>LMB / RMB</b></div>
+            <div class="kv"><span>RELOAD</span><b>R</b></div>
+            <div class="kv"><span>THROW</span><b>G</b></div>
+            <div class="kv"><span>WEAPONS</span><b>1 2 3 / WHEEL</b></div>
+            <div class="kv"><span>SCOREBOARD</span><b>TAB</b></div>
+            <div class="kv"><span>PAUSE</span><b>ESC</b></div>
+            <div class="kv"><span>VOICE CHAT</span><b>V</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="colR">
+        <div class="panel" data-rev>
+          <div class="ptitle"><span class="dot"></span>LOADOUT <i>// 1 PRIMARY + 1 SECONDARY + 1 THROWABLE</i></div>
+          <div class="tabs">
+            <div class="tab on" data-slot="0">PRIMARY</div>
+            <div class="tab" data-slot="1">SECONDARY</div>
+            <div class="tab" data-slot="2">THROWABLE</div>
+            <div class="tab" data-slot="3">OPERATOR</div>
+          </div>
+          <div class="wlist" id="wlist"></div>
+          <div class="row" style="margin-top:10px;justify-content:space-between">
+            <div class="chip">EQ: <b id="eqLine">—</b></div>
+            <button class="btn ghost sm" id="btnRandomLoad">RANDOMIZE</button>
+          </div>
+        </div>
+
+        <div class="panel" data-rev>
+          <div class="ptitle"><span class="dot"></span>MASTERY &amp; CAREER</div>
+          <div id="mastList" style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px">
+            <div class="kv"><span>DAMAGE DEALT</span><b id="cvDmg">0</b></div>
+            <div class="kv"><span>SHOTS FIRED</span><b id="cvShots">0</b></div>
+            <div class="kv"><span>ACCURACY</span><b class="g" id="cvAcc">0%</b></div>
+            <div class="kv"><span>MATCHES</span><b id="cvMatches">0</b></div>
+            <div class="kv"><span>WINS</span><b class="a" id="cvWins">0</b></div>
+            <div class="kv"><span>TIME PLAYED</span><b id="cvTime">0m</b></div>
+          </div>
+        </div>
+
+        <div class="panel" data-rev>
+          <div class="ptitle"><span class="dot"></span>SETTINGS</div>
+          <div class="row">
+            <div class="field"><label>MOUSE SENS <b class="mono" id="vSens">1.00</b></label><input id="setSens" type="range" min="20" max="300" value="100"></div>
+            <div class="field"><label>FIELD OF VIEW <b class="mono" id="vFov">85</b></label><input id="setFov" type="range" min="65" max="110" value="85"></div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <div class="field"><label>VOLUME <b class="mono" id="vVol">70</b></label><input id="setVol" type="range" min="0" max="100" value="70"></div>
+            <div class="field"><label>QUALITY</label><select id="setQual"><option value="low">LOW (MOBILE)</option><option value="med" selected>MEDIUM</option><option value="high">HIGH</option></select></div>
+          </div>
+          <div class="row" style="margin-top:10px;gap:8px">
+            <label class="chip" style="cursor:pointer"><input type="checkbox" id="setInvY" style="accent-color:#ffb648"> INVERT LOOK Y</label>
+            <label class="chip" style="cursor:pointer"><input type="checkbox" id="setShake" checked style="accent-color:#ffb648"> SCREEN SHAKE</label>
+            <label class="chip" style="cursor:pointer"><input type="checkbox" id="setTouch" style="accent-color:#ffb648"> TOUCH CONTROLS</label>
+            <label class="chip" style="cursor:pointer"><input type="checkbox" id="setShowFps" checked style="accent-color:#ffb648"> FPS COUNTER</label>
+            <label class="chip" style="cursor:pointer"><input type="checkbox" id="setView3p" style="accent-color:#ffb648"> THIRD PERSON [V]</label>
+            <label class="chip" style="cursor:pointer" title="Uses the operator's own arms in first person. Experimental: only third-person rifle poses exist."><input type="checkbox" id="setFpArms" style="accent-color:#ffb648"> OPERATOR ARMS (EXPERIMENTAL)</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="menuBot">
+      <div class="marq"><i id="marqTxt">WASD MOVE &bull; SHIFT SPRINT &bull; C SLIDE &bull; R RELOAD &bull; G THROW &bull; TAB SCORES &bull; BREAK LINE OF SIGHT FOR 3 SECONDS TO REGENERATE HEALTH &bull; EVERY WEAPON LEVELS UP SEPARATELY &bull; HOST IS AUTHORITATIVE &bull; ZERO SERVERS &bull; </i></div>
+      <div class="chip">ENGINE <b id="engVer">BABYLON</b></div>
+      <div class="chip">RENDERER <b id="renName">WEBGL</b></div>
+    </div>
+  </div>
+
+  <!-- ============ LOBBY / P2P ============ -->
+  <div id="lobby" class="screen hidden">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin-bottom:12px;flex-wrap:wrap">
+      <div>
+        <div class="brandTag">WEBRTC DATACHANNEL // ORDERED:FALSE // MAXRETRANSMITS:0</div>
+        <h2 class="disp" style="margin:2px 0 0;font-size:clamp(22px,4vw,34px);color:#efe6cd;text-shadow:3px 3px 0 #000">SERVERLESS LOBBY</h2>
+      </div>
+      <div class="row">
+        <button class="btn ghost sm" id="btnBackMenu">&laquo; MENU</button>
+        <button class="btn hot sm" id="btnStartMatch">START MATCH</button>
+      </div>
+    </div>
+
+    <div class="lobbyGrid">
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div class="panel in">
+          <div class="ptitle"><span class="dot"></span>SLOTS <i id="slotCount">1 / 8</i></div>
+          <div id="slotList"></div>
+          <div class="row" style="margin-top:10px">
+            <button class="btn ghost sm" id="btnAddBot">+ ADD BOT</button>
+            <button class="btn ghost sm" id="btnRemBot">- REMOVE BOT</button>
+            <button class="btn ghost sm" id="btnFill">FILL LOBBY</button>
+            <button class="btn ghost sm" id="btnMyTeam">SWAP MY TEAM</button>
+          </div>
+        </div>
+        <div class="panel in">
+          <div class="ptitle"><span class="dot"></span>SIGNALING <i>// COPY-PASTE TOKEN — NO SERVER</i></div>
+          <div class="row" style="margin-bottom:8px">
+            <button class="btn ghost sm" id="btnHost">1 &bull; HOST ROOM</button>
+            <button class="btn ghost sm" id="btnJoin">2 &bull; JOIN ROOM</button>
+            <div class="chip" id="netState">STATUS: <b>OFFLINE</b></div>
+          </div>
+          <label class="mono" style="font-size:10px;letter-spacing:.14em;color:var(--mut)">LOCAL TOKEN (SEND THIS TO YOUR PEER)</label>
+          <textarea class="sigbox" id="sigLocal" readonly placeholder="— generate a token first —"></textarea>
+          <div class="row" style="margin:8px 0">
+            <button class="btn sm" id="btnCopyLocal">COPY TOKEN</button>
+            <button class="btn sm ghost" id="btnAccept">ACCEPT PEER TOKEN &raquo;</button>
+          </div>
+          <label class="mono" style="font-size:10px;letter-spacing:.14em;color:var(--mut)">PEER TOKEN (PASTE THEIRS HERE)</label>
+          <textarea class="sigbox" id="sigRemote" placeholder="paste peer token..."></textarea>
+          <div class="mono" style="font-size:11px;color:var(--mut);margin-top:8px;line-height:1.5" id="sigHelp">
+            HOST: click <b style="color:var(--amber)">HOST ROOM</b>, copy your token, send it to the peer (any channel / QR). Paste their reply token and click <b style="color:var(--amber)">ACCEPT</b>.<br>
+            JOIN: paste the host token, click <b style="color:var(--amber)">JOIN ROOM</b>, copy your answer token back to the host.
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div class="panel in">
+          <div class="ptitle"><span class="dot"></span>ARENA PREVIEW <i id="pvSeed">SEED —</i></div>
+          <canvas class="preview" id="pvCv" width="360" height="260"></canvas>
+          <div class="row" style="margin-top:10px">
+            <div class="field"><label>SEED</label><input id="lbSeed" maxlength="16" placeholder="random"></div>
+            <div class="field"><label>MODE</label><select id="lbMode"><option value="ffa">FREE FOR ALL</option><option value="tdm">TEAM DEATHMATCH</option><option value="horde">CO-OP HORDE</option></select></div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn ghost sm wide" id="btnNewSeed">GENERATE NEW ARENA</button>
+          </div>
+        </div>
+        <div class="panel in">
+          <div class="ptitle"><span class="dot"></span>NET DIAGNOSTICS</div>
+          <div class="kv"><span>ROLE</span><b id="ndRole">—</b></div>
+          <div class="kv"><span>PEERS</span><b id="ndPeers">0</b></div>
+          <div class="kv"><span>ICE</span><b id="ndIce">idle</b></div>
+          <div class="kv"><span>RTT (EST)</span><b class="g" id="ndRtt">—</b></div>
+          <div class="kv"><span>MSG/S</span><b class="a" id="ndRate">0</b></div>
+          <div class="kv"><span>PACKETS OUT</span><b id="ndOut">0</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ HUD ============ -->
+  <div id="hud" class="hidden">
+    <div id="dmgVig"></div><div id="lowHp"></div>
+    <div id="radar" class="hudPan"><canvas id="radarCv" width="160" height="160"></canvas><div class="sw"></div><div class="cap mono">RADAR // <span id="radarMode">FFA</span></div></div>
+    <div id="hudTC" class="hudPan">
+      <div id="modeName">FREE FOR ALL</div>
+      <div id="timer">5:00</div>
+      <div id="scoreLine"><span class="rs" id="scR">RED 0</span><span>|</span><span class="bs" id="scB">BLUE 0</span></div>
+    </div>
+    <div id="feed"></div>
+    <div id="crosshair"><i class="chL"></i><i class="chR"></i><i class="chT"></i><i class="chB"></i><i class="chD"></i></div>
+    <div id="hitmark"><i></i><i></i><i></i><i></i></div>
+    <div id="hitDir" class="dmgdir"></div>
+    <div id="reloadBar"><span class="t mono">RELOADING</span><i></i></div>
+    <div id="waveBan"><div class="a">WAVE 1</div><div class="b mono">INCOMING</div></div>
+    <div id="toastW"></div>
+    <div id="scopeOv"><div class="ring"></div><div class="r1"></div><div class="r2"></div></div>
+    <div id="blindOv"></div>
+    <div id="hudBL" class="hudPan">
+      <div class="hpRow"><div class="hpNum" id="hpNum">100</div><div class="hpLbl">VITALS<br><span id="hpState" style="color:var(--green)">STABLE</span></div></div>
+      <div class="bar" id="hpBar"><u></u><i style="width:100%"></i></div>
+      <div class="plates" id="plates" title="Armour plates"><i><b></b></i><i><b></b></i><i><b></b></i></div>
+      <div class="stanceRow">
+        <span class="st on" id="stStand">STAND</span><span class="st" id="stCrouch">CROUCH</span>
+        <span class="st" id="stProne">PRONE</span><span class="st" id="stSprint">SPRINT</span>
+        <span class="st" id="stSlide">SLIDE</span><span class="st cov" id="stCover">IN COVER</span>
+      </div>
+    </div>
+    <div id="hudBR" class="hudPan">
+      <div class="wName" id="wName">AK-47</div>
+      <div class="wMeta"><span id="wCls">ASSAULT RIFLE</span><span>&bull;</span><span>LVL <b id="wLvl" style="color:var(--amber)">1</b></span><span>&bull;</span><span id="wMode">AUTO</span></div>
+      <div class="ammoRow"><div class="ammo" id="ammoN">30</div><div class="ammo"><small id="ammoR">/150</small></div></div>
+      <div class="xpRow"><div class="lbl">MASTERY XP <b id="xpTxt">0 / 120</b></div><div class="bar"><i id="xpBar" style="width:0%"></i></div></div>
+      <div class="throwRow" id="throwRow"></div>
+    </div>
+    <div id="fpsC" class="mono">-- FPS</div>
+  </div>
+
+  <!-- ============ SCOREBOARD ============ -->
+  <div id="score" class="hidden"><div class="sb panel in"><div class="sbHead">
+    <h3 id="sbTitle">SCOREBOARD</h3><div class="mono" style="font-size:11px;color:var(--mut)" id="sbSub">HOLD TAB</div></div>
+    <div id="sbBody"></div></div></div>
+
+  <!-- ============ PAUSE ============ -->
+  <div id="pause" class="hidden"><div class="card panel in">
+    <h2>PAUSED</h2><div class="mono" style="font-size:11px;letter-spacing:.16em;color:var(--mut)" id="pauseSub">MATCH SUSPENDED</div>
+    <div style="margin-top:16px;display:flex;flex-direction:column;gap:9px">
+      <button class="btn hot wide" id="btnResume">RESUME</button>
+      <button class="btn ghost wide" id="btnPauseSens">SENSITIVITY &amp; SETTINGS</button>
+      <button class="btn ghost wide" id="btnPauseNet">MULTIPLAYER STATUS</button>
+      <button class="btn danger wide" id="btnQuit">ABORT MISSION</button>
+    </div>
+    <div style="margin-top:14px" id="pauseSettings" class="hidden">
+      <div class="field"><label>MOUSE SENS <b class="mono" id="vSens2">1.00</b></label><input id="setSens2" type="range" min="20" max="300" value="100"></div>
+      <div class="field" style="margin-top:8px"><label>FOV <b class="mono" id="vFov2">85</b></label><input id="setFov2" type="range" min="65" max="110" value="85"></div>
+      <div class="field" style="margin-top:8px"><label>VOLUME <b class="mono" id="vVol2">70</b></label><input id="setVol2" type="range" min="0" max="100" value="70"></div>
+    </div>
+  </div></div>
+
+  <!-- ============ END OF MATCH ============ -->
+  <div id="end" class="hidden"><div class="card panel in">
+    <h2 id="endTitle">MISSION COMPLETE</h2>
+    <div class="mono" style="font-size:11px;letter-spacing:.16em;color:var(--mut)" id="endSub">ARENA SEED —</div>
+    <div class="endGrid" id="endStats"></div>
+    <div class="ptitle" style="margin-top:6px"><span class="dot"></span>MASTERY PROGRESS</div>
+    <div id="endLevels" style="max-height:180px;overflow:auto;margin-bottom:12px"></div>
+    <div id="endBoard" style="margin-bottom:14px"></div>
+    <div class="row">
+      <button class="btn hot" id="btnRematch" style="flex:1">REMATCH (NEW SEED)</button>
+      <button class="btn ghost" id="btnAgainSeed">SAME ARENA</button>
+      <button class="btn ghost" id="btnEndMenu">MAIN MENU</button>
+    </div>
+  </div></div>
+
+  <!-- ============ TOUCH CONTROLS ============ -->
+  <div id="touch" class="hidden">
+    <div id="lookPad"></div>
+    <div class="stick" id="stickL"><div class="knob"></div><div class="lab">MOVE</div></div>
+    <div class="tbtn big" id="bFire">FIRE</div>
+    <div class="tbtn" id="bAim">ADS</div>
+    <div class="tbtn" id="bJump">JUMP</div>
+    <div class="tbtn" id="bCrouch">CR</div>
+    <div class="tbtn" id="bSprint">RUN</div>
+    <div class="tbtn rect" id="bReload">R</div>
+    <div class="tbtn rect" id="bThrow">G</div>
+    <div class="tbtn rect" id="bSwap">1/2</div>
+    <div class="tbtn rect" id="bPause">II</div>
+    <div class="tbtn rect" id="bCam">CAM</div>
+  </div>
+</div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

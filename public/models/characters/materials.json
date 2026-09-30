@@ -1,0 +1,40 @@
+{
+ "alien_soldier": {
+  "Ch44_Body": 2.8,
+  "Ch44_body1": 2.8
+ },
+ "crypto": {
+  "Ch45_Body": 2.02
+ },
+ "gas_mask": {
+  "Ch35_body2": 2.8,
+  "Ch35_body": 2.23,
+  "Ch35_body1": 2.8
+ },
+ "jones": {
+  "Ch04_body": 1.14
+ },
+ "morak": {
+  "Ch05_body": 1.14,
+  "Ch05_body1": 1.95,
+  "Ch05_body2": 1.14
+ },
+ "steve": {
+  "Ch_49_body2": 1.14,
+  "Ch_49_eyelashes": 1.14,
+  "Ch_49_body1": 1.14
+ },
+ "swat": {
+  "Soldier_body1.001": 1.45,
+  "Soldier_body1": 1.45,
+  "Soldier_head6": 1.14
+ },
+ "swat_guy": {
+  "Ch15_body": 1.33,
+  "Ch15_body1": 2.8
+ },
+ "zlorp": {
+  "Ch50_body1": 2.8,
+  "Ch50_body": 1.69
+ }
+}
