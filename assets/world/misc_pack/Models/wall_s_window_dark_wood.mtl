@@ -1,0 +1,48 @@
+# Blender 4.1.0 MTL File: 'HANUSOVY VJECI lepci blendir .blend'
+# www.blender.org
+
+newmtl Material.072
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.500000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd C:/Users/Eurovision/Desktop/se poseru/hanusovy vjeci/Hovna co ted budu delat do nekonecna/okno drevene .png
+
+newmtl Material.077
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 3.800000
+d 0.304545
+illum 9
+Pr 0.000000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+Tf 0.722727 0.722727 0.722727
+map_Kd C:/Users/Eurovision/Desktop/se poseru/hanusovy vjeci/Hovna co ted budu delat do nekonecna/okno ve zdi sklo.png
+
+newmtl Material.191
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.500000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd C:/Users/Eurovision/Desktop/se poseru/hanusovy vjeci/Hovna co ted budu delat do nekonecna/zed s oknem.png

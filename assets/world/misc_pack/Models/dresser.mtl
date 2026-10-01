@@ -1,0 +1,22 @@
+# Blender 4.1.0 MTL File: 'HANUSOVY VJECI lepci blendir .blend'
+# www.blender.org
+
+newmtl Material.004
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd -o 2.98023e-08 1.19209e-07 0.1 -s 1 1 0.7 C:/Users/Eurovision/Desktop/se poseru/hanusovy vjeci/SBS - Tiny Texture Pack 2 - 128x128/128x128/Wood/Wood_11-128x128.png
+
+newmtl Material.005
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd -o 4.17233e-07 0 0 -s 1 1 -0.3 C:/Users/Eurovision/Desktop/se poseru/hanusovy vjeci/SBS - Tiny Texture Pack 2 - 128x128/128x128/Wood/Wood_19-128x128.png
