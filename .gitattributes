@@ -1,0 +1,6 @@
+assets/character/Steve.fbx filter=lfs diff=lfs merge=lfs -text
+assets/character/Zlorp.fbx filter=lfs diff=lfs merge=lfs -text
+assets/character/Morak.fbx filter=lfs diff=lfs merge=lfs -text
+assets/character/gas_mask.fbx filter=lfs diff=lfs merge=lfs -text
+assets/character/Swat_Guyfbx.fbx filter=lfs diff=lfs merge=lfs -text
+assets/world/the_island_pack/TI/PSX_TI_UnityPackage.unitypackage filter=lfs diff=lfs merge=lfs -text
