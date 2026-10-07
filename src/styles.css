@@ -87,18 +87,20 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
   clip-path:polygon(0 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%)}
 .stat u{display:block;text-decoration:none;font-family:'Share Tech Mono';font-size:9.5px;letter-spacing:.16em;color:var(--mut)}
 .stat b{font-family:'Black Ops One';font-size:19px;color:var(--sand);text-shadow:2px 2px 0 #000}
-#menuMain{flex:1;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:18px;padding:8px 26px 14px;overflow:auto;align-content:start}
+/* master-detail: a persistent nav sidebar (#menuNav) + a single detail pane (whichever .secGroup is .active).
+   On narrow/landscape-phone screens this becomes drill-down instead — see RESPONSIVE. */
+#menuMain{flex:1;display:grid;grid-template-columns:minmax(200px,240px) minmax(0,1fr);gap:18px;padding:8px 26px 14px;overflow:auto;align-content:start}
 #menuMain::-webkit-scrollbar{width:8px}#menuMain::-webkit-scrollbar-thumb{background:var(--line2)}
-.colL,.colR{display:flex;flex-direction:column;gap:16px;min-width:0}
-.secGroup{display:flex;flex-direction:column;gap:16px}
+.secGroup{display:none;flex-direction:column;gap:16px;min-width:0}
+.secGroup.active{display:flex}
 .secBack{display:none;align-self:flex-start}
 
-/* mobile master list: a flat row of nav tiles into each section (hidden on desktop, see RESPONSIVE) */
-#menuNav{display:none}
+#menuNav{display:flex;flex-direction:column;gap:10px;min-width:0}
 .navTile{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;text-align:left;cursor:pointer;
   padding:14px 16px;background:linear-gradient(90deg,rgba(38,46,28,.9),rgba(14,18,11,.55));
   border:1px solid var(--line);border-left:4px solid var(--line2);color:inherit;font-family:inherit;transition:.18s}
 .navTile:hover,.navTile:active{border-left-color:var(--amber);transform:translateX(5px)}
+.navTile.sel{border-left-color:var(--amber);background:linear-gradient(90deg,rgba(70,58,24,.95),rgba(20,24,14,.6))}
 .navTile .nt{font-family:'Black Ops One';font-size:15px;letter-spacing:.08em;color:#efe6cd;text-shadow:2px 2px 0 #000}
 .navTile .nd{font-family:'Share Tech Mono';font-size:11px;color:var(--mut)}
 
@@ -330,11 +332,9 @@ table.sbT tr.t1 td:first-child{box-shadow:inset 3px 0 0 var(--blue)}
   #menuTop{padding:14px 16px 4px;flex-direction:column}
   .topStats{max-width:100%;justify-content:flex-start}
   #menuBot{padding:8px 14px 12px}
-  /* master-detail: one section (or the nav list) on screen at a time, so there's nothing to scroll past */
-  #menuMain:not(.drilled) #menuNav{display:flex;flex-direction:column;gap:10px}
-  #menuMain:not(.drilled) .secGroup{display:none}
-  #menuMain.drilled .secGroup{display:none}
-  #menuMain.drilled .secGroup.active{display:flex}
+  /* drill-down: no persistent sidebar here — the nav list and the active section take turns filling the screen */
+  #menuMain:not(.drilled) .secGroup.active{display:none}
+  #menuMain.drilled #menuNav{display:none}
   .secBack{display:inline-flex;margin-bottom:2px}
   .desktopOnly{display:none}
   .lobbyGrid{grid-template-columns:1fr}
@@ -347,6 +347,66 @@ table.sbT tr.t1 td:first-child{box-shadow:inset 3px 0 0 var(--blue)}
 @media(max-height:520px){
   .brandTitle{font-size:clamp(28px,6vw,50px)}
   .wlist{max-height:34vh}
+}
+/* landscape phones: barely 350-430px of height to work with, so the header and nav list both get compact */
+@media(max-height:430px){
+  #menuTop{padding:4px 16px 2px;align-items:center}
+  .brandTag,.brandSub{display:none}
+  .brandTitle{font-size:clamp(18px,4.4vw,28px)}
+  .topStats{gap:4px}
+  .stat{padding:3px 8px;min-width:0}
+  .stat u{display:none}
+  .stat b{font-size:14px}
+  #menuBot{display:none}
+  #menuMain{padding:4px 14px 6px;gap:10px}
+  #menuNav{gap:6px}
+  .navTile{padding:7px 12px}
+  .navTile .nd{display:none}
+  .secGroup{gap:8px}
+  .panel{padding:8px 10px}
+  .ptitle{margin-bottom:6px}
+
+  /* in-match HUD: the bottom half is all touch controls here, so every panel moves up to the top edge
+     and shrinks — otherwise vitals/ammo/radar collide with the stick and button cluster below them */
+  #radar{width:72px;height:72px;left:8px;top:8px;padding:3px}
+  #radar .cap{display:none}
+  #hudBL{left:88px;top:8px;bottom:auto;width:160px;padding:5px 8px}
+  .hpNum{font-size:20px}
+  .hpLbl{font-size:8.5px}
+  .bar{height:7px;margin-top:3px}
+  .stanceRow{margin-top:4px;gap:3px}
+  .st{font-size:8px;padding:1px 5px}
+  #hudTC{top:6px;padding:4px 12px;min-width:0}
+  #modeName{font-size:9px}
+  #timer{font-size:18px}
+  #scoreLine{font-size:9.5px;gap:6px}
+  #hudBR{right:8px;top:8px;bottom:auto;width:150px;padding:5px 8px}
+  .wName{font-size:13px}
+  .wMeta{font-size:8.5px;gap:5px}
+  .ammo{font-size:24px}
+  .ammo small{font-size:12px}
+  .xpRow{margin-top:3px}
+  .xpRow .lbl{font-size:8.5px}
+  .throwRow{display:none}
+  #feed{top:84px;right:8px;width:150px}
+
+  /* touch controls: compact and pulled into the shorter bottom band so nothing reaches into the HUD above */
+  .stick{left:12px;bottom:10px;width:92px;height:92px}
+  .stick .knob{width:40px;height:40px;margin:-20px 0 0 -20px}
+  .stick .lab{display:none}
+  .tbtn{width:46px;height:46px;font-size:9px}
+  .tbtn.big{width:64px;height:64px;font-size:10.5px}
+  .tbtn.rect{width:50px;height:32px;font-size:9px}
+  #bFire{right:14px;bottom:14px}
+  #bAim{right:86px;bottom:20px}
+  #bJump{right:14px;bottom:86px;width:42px;height:42px}
+  #bCrouch{right:78px;bottom:78px;width:42px;height:42px}
+  #bSprint{left:112px;bottom:16px;width:42px;height:42px}
+  #bReload{right:140px;top:auto;bottom:14px;width:42px;height:42px}
+  #bThrow{right:140px;top:auto;bottom:54px;width:42px;height:42px}
+  #bSwap{right:140px;top:auto;bottom:94px;width:42px;height:42px}
+  #bCam{left:calc(50% + 20px);top:62px;width:34px;height:24px;font-size:8.5px}
+  #bPause{left:50%;top:62px;width:34px;height:24px;font-size:8.5px}
 }
 
 /* operator select */

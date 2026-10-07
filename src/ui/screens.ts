@@ -18,8 +18,9 @@ export const uiScreens = {
 
   pause(on){
     const p = $('pause');
-    if (on && Game.state === 'play'){ vis('pause', true); Input.enabled = false; document.exitPointerLock && document.exitPointerLock(); SFX.ui(); }
-    else { vis('pause', false); Input.enabled = true; if (!ctx.IS_TOUCH && Game.state === 'play') ctx.canvas.requestPointerLock && ctx.canvas.requestPointerLock(); }
+    const touchOn = !!(ctx.IS_TOUCH || (Save.data.settings && Save.data.settings.touch));
+    if (on && Game.state === 'play'){ vis('pause', true); vis('touch', false); Input.enabled = false; document.exitPointerLock && document.exitPointerLock(); SFX.ui(); }
+    else { vis('pause', false); if (touchOn) vis('touch', true); Input.enabled = true; if (!ctx.IS_TOUCH && Game.state === 'play') ctx.canvas.requestPointerLock && ctx.canvas.requestPointerLock(); }
   },
 
   togglePause(){

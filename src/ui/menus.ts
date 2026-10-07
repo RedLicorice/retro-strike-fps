@@ -179,17 +179,16 @@ export const uiMenus = {
       vis('menu', false); vis('lobby', true);
       this.buildSlots(); this.previewDraw(); this.newArena(Lobby.seed); Net.setStatus();
     });
-    /* mobile master-detail: a nav tile drills into one section of #menuMain, '< MENU' backs out to the tile list */
+    /* nav tile picks which #menuMain section is the detail pane (persistent sidebar on wide screens).
+       On narrow/landscape-phone screens the same click also drills in full-screen; '< MENU' backs out to the tile list. */
     $$('.navTile[data-sec]').forEach(t => t.addEventListener('click', () => {
       $('menuMain').classList.add('drilled');
+      $$('.navTile[data-sec]').forEach(o => o.classList.toggle('sel', o === t));
       $$('.secGroup').forEach(g => g.classList.toggle('active', g.dataset.sec === t.dataset.sec));
       $('menuMain').scrollTop = 0;
       SFX.uiBig();
     }));
-    $$('.secBack').forEach(b => b.addEventListener('click', () => {
-      $('menuMain').classList.remove('drilled');
-      $$('.secGroup').forEach(g => g.classList.remove('active'));
-    }));
+    $$('.secBack').forEach(b => b.addEventListener('click', () => { $('menuMain').classList.remove('drilled'); }));
     $('navMultiplayer').addEventListener('click', () => $('btnLobby').click());
     $('btnBackMenu').addEventListener('click', () => { vis('lobby', false); vis('menu', true); });
     $('btnStartMatch').addEventListener('click', () => this.startFromLobby());

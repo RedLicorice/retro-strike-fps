@@ -46,40 +46,38 @@
     </div>
 
     <div id="menuMain">
-      <!-- mobile-only master list: on desktop this stays hidden and every section below is shown at once -->
+      <!-- persistent sidebar on wide screens (master-detail); full-screen list on narrow/landscape-phone screens (drill-down) -->
       <div id="menuNav">
-        <button class="navTile" data-sec="play"><span class="nt">PLAY</span><span class="nd">Mode, callsign, map, bots, deploy</span></button>
+        <button class="navTile sel" data-sec="play"><span class="nt">PLAY</span><span class="nd">Mode, callsign, map, bots, deploy</span></button>
         <button class="navTile" data-sec="loadout"><span class="nt">LOADOUT</span><span class="nd">Primary, secondary, throwable, operator</span></button>
         <button class="navTile" data-sec="career"><span class="nt">CAREER</span><span class="nd">Mastery levels &amp; lifetime stats</span></button>
         <button class="navTile" data-sec="settings"><span class="nt">SETTINGS</span><span class="nd">Sensitivity, quality, toggles</span></button>
         <button class="navTile" id="navMultiplayer"><span class="nt">MULTIPLAYER</span><span class="nd">Host or join a serverless P2P room</span></button>
       </div>
 
-      <div class="colL">
-        <div class="secGroup" data-sec="play">
-          <button class="btn ghost sm secBack">&lsaquo; MENU</button>
-          <div class="panel" data-rev>
-            <div class="ptitle"><span class="dot"></span>SELECT GAME MODE <i>// 03 PROFILES</i></div>
-            <div id="modeList" style="display:flex;flex-direction:column;gap:7px"></div>
-          </div>
+      <div class="secGroup active" data-sec="play">
+        <button class="btn ghost sm secBack">&lsaquo; MENU</button>
+        <div class="panel" data-rev>
+          <div class="ptitle"><span class="dot"></span>SELECT GAME MODE <i>// 03 PROFILES</i></div>
+          <div id="modeList" style="display:flex;flex-direction:column;gap:7px"></div>
+        </div>
 
-          <div class="panel" data-rev>
-            <div class="ptitle"><span class="dot"></span>MATCH SETUP</div>
-            <div class="row" style="margin-bottom:10px">
-              <div class="field"><label>CALLSIGN</label><input id="inName" maxlength="14" placeholder="VIPER"></div>
-              <div class="field"><label>ARENA SEED</label><input id="inSeed" maxlength="16" placeholder="random"></div>
-              <div class="field"><label>MAP</label><select id="inMap"></select></div>
-            </div>
-            <div class="row" style="margin-bottom:12px">
-              <div class="field"><label>BOTS (FILL TO 8)</label><input id="inBots" type="number" min="0" max="7" value="5"></div>
-              <div class="field"><label>BOT SKILL</label><select id="inSkill"><option value="0">RECRUIT</option><option value="1" selected>VETERAN</option><option value="2">ELITE</option></select></div>
-              <div class="field"><label>SCORE LIMIT</label><input id="inLimit" type="number" min="5" max="100" value="25"></div>
-            </div>
-            <div class="row">
-              <button class="btn hot" id="btnDeploy" style="flex:1">DEPLOY &raquo;</button>
-              <button class="btn ghost" id="btnLobby">MULTIPLAYER</button>
-              <button class="btn ghost" id="btnReseed">REROLL SEED</button>
-            </div>
+        <div class="panel" data-rev>
+          <div class="ptitle"><span class="dot"></span>MATCH SETUP</div>
+          <div class="row" style="margin-bottom:10px">
+            <div class="field"><label>CALLSIGN</label><input id="inName" maxlength="14" placeholder="VIPER"></div>
+            <div class="field"><label>ARENA SEED</label><input id="inSeed" maxlength="16" placeholder="random"></div>
+            <div class="field"><label>MAP</label><select id="inMap"></select></div>
+          </div>
+          <div class="row" style="margin-bottom:12px">
+            <div class="field"><label>BOTS (FILL TO 8)</label><input id="inBots" type="number" min="0" max="7" value="5"></div>
+            <div class="field"><label>BOT SKILL</label><select id="inSkill"><option value="0">RECRUIT</option><option value="1" selected>VETERAN</option><option value="2">ELITE</option></select></div>
+            <div class="field"><label>SCORE LIMIT</label><input id="inLimit" type="number" min="5" max="100" value="25"></div>
+          </div>
+          <div class="row">
+            <button class="btn hot" id="btnDeploy" style="flex:1">DEPLOY &raquo;</button>
+            <button class="btn ghost" id="btnLobby">MULTIPLAYER</button>
+            <button class="btn ghost" id="btnReseed">REROLL SEED</button>
           </div>
         </div>
 
@@ -104,8 +102,7 @@
         </div>
       </div>
 
-      <div class="colR">
-        <div class="secGroup" data-sec="loadout">
+      <div class="secGroup" data-sec="loadout">
           <button class="btn ghost sm secBack">&lsaquo; MENU</button>
           <div class="panel" data-rev>
             <div class="ptitle"><span class="dot"></span>LOADOUT <i>// 1 PRIMARY + 1 SECONDARY + 1 THROWABLE</i></div>
@@ -161,7 +158,6 @@
             </div>
           </div>
         </div>
-      </div>
     </div>
 
     <div id="menuBot">
