@@ -46,32 +46,44 @@
     </div>
 
     <div id="menuMain">
+      <!-- mobile-only master list: on desktop this stays hidden and every section below is shown at once -->
+      <div id="menuNav">
+        <button class="navTile" data-sec="play"><span class="nt">PLAY</span><span class="nd">Mode, callsign, map, bots, deploy</span></button>
+        <button class="navTile" data-sec="loadout"><span class="nt">LOADOUT</span><span class="nd">Primary, secondary, throwable, operator</span></button>
+        <button class="navTile" data-sec="career"><span class="nt">CAREER</span><span class="nd">Mastery levels &amp; lifetime stats</span></button>
+        <button class="navTile" data-sec="settings"><span class="nt">SETTINGS</span><span class="nd">Sensitivity, quality, toggles</span></button>
+        <button class="navTile" id="navMultiplayer"><span class="nt">MULTIPLAYER</span><span class="nd">Host or join a serverless P2P room</span></button>
+      </div>
+
       <div class="colL">
-        <div class="panel" data-rev>
-          <div class="ptitle"><span class="dot"></span>SELECT GAME MODE <i>// 03 PROFILES</i></div>
-          <div id="modeList" style="display:flex;flex-direction:column;gap:7px"></div>
+        <div class="secGroup" data-sec="play">
+          <button class="btn ghost sm secBack">&lsaquo; MENU</button>
+          <div class="panel" data-rev>
+            <div class="ptitle"><span class="dot"></span>SELECT GAME MODE <i>// 03 PROFILES</i></div>
+            <div id="modeList" style="display:flex;flex-direction:column;gap:7px"></div>
+          </div>
+
+          <div class="panel" data-rev>
+            <div class="ptitle"><span class="dot"></span>MATCH SETUP</div>
+            <div class="row" style="margin-bottom:10px">
+              <div class="field"><label>CALLSIGN</label><input id="inName" maxlength="14" placeholder="VIPER"></div>
+              <div class="field"><label>ARENA SEED</label><input id="inSeed" maxlength="16" placeholder="random"></div>
+              <div class="field"><label>MAP</label><select id="inMap"></select></div>
+            </div>
+            <div class="row" style="margin-bottom:12px">
+              <div class="field"><label>BOTS (FILL TO 8)</label><input id="inBots" type="number" min="0" max="7" value="5"></div>
+              <div class="field"><label>BOT SKILL</label><select id="inSkill"><option value="0">RECRUIT</option><option value="1" selected>VETERAN</option><option value="2">ELITE</option></select></div>
+              <div class="field"><label>SCORE LIMIT</label><input id="inLimit" type="number" min="5" max="100" value="25"></div>
+            </div>
+            <div class="row">
+              <button class="btn hot" id="btnDeploy" style="flex:1">DEPLOY &raquo;</button>
+              <button class="btn ghost" id="btnLobby">MULTIPLAYER</button>
+              <button class="btn ghost" id="btnReseed">REROLL SEED</button>
+            </div>
+          </div>
         </div>
 
-        <div class="panel" data-rev>
-          <div class="ptitle"><span class="dot"></span>MATCH SETUP</div>
-          <div class="row" style="margin-bottom:10px">
-            <div class="field"><label>CALLSIGN</label><input id="inName" maxlength="14" placeholder="VIPER"></div>
-            <div class="field"><label>ARENA SEED</label><input id="inSeed" maxlength="16" placeholder="random"></div>
-            <div class="field"><label>MAP</label><select id="inMap"></select></div>
-          </div>
-          <div class="row" style="margin-bottom:12px">
-            <div class="field"><label>BOTS (FILL TO 8)</label><input id="inBots" type="number" min="0" max="7" value="5"></div>
-            <div class="field"><label>BOT SKILL</label><select id="inSkill"><option value="0">RECRUIT</option><option value="1" selected>VETERAN</option><option value="2">ELITE</option></select></div>
-            <div class="field"><label>SCORE LIMIT</label><input id="inLimit" type="number" min="5" max="100" value="25"></div>
-          </div>
-          <div class="row">
-            <button class="btn hot" id="btnDeploy" style="flex:1">DEPLOY &raquo;</button>
-            <button class="btn ghost" id="btnLobby">MULTIPLAYER</button>
-            <button class="btn ghost" id="btnReseed">REROLL SEED</button>
-          </div>
-        </div>
-
-        <div class="panel" data-rev>
+        <div class="panel desktopOnly" data-rev>
           <div class="ptitle"><span class="dot"></span>CONTROLS <i>// DESKTOP</i></div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:4px 16px">
             <div class="kv"><span>MOVE</span><b>W A S D</b></div>
@@ -93,51 +105,60 @@
       </div>
 
       <div class="colR">
-        <div class="panel" data-rev>
-          <div class="ptitle"><span class="dot"></span>LOADOUT <i>// 1 PRIMARY + 1 SECONDARY + 1 THROWABLE</i></div>
-          <div class="tabs">
-            <div class="tab on" data-slot="0">PRIMARY</div>
-            <div class="tab" data-slot="1">SECONDARY</div>
-            <div class="tab" data-slot="2">THROWABLE</div>
-            <div class="tab" data-slot="3">OPERATOR</div>
-          </div>
-          <div class="wlist" id="wlist"></div>
-          <div class="row" style="margin-top:10px;justify-content:space-between">
-            <div class="chip">EQ: <b id="eqLine">—</b></div>
-            <button class="btn ghost sm" id="btnRandomLoad">RANDOMIZE</button>
-          </div>
-        </div>
-
-        <div class="panel" data-rev>
-          <div class="ptitle"><span class="dot"></span>MASTERY &amp; CAREER</div>
-          <div id="mastList" style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px"></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px">
-            <div class="kv"><span>DAMAGE DEALT</span><b id="cvDmg">0</b></div>
-            <div class="kv"><span>SHOTS FIRED</span><b id="cvShots">0</b></div>
-            <div class="kv"><span>ACCURACY</span><b class="g" id="cvAcc">0%</b></div>
-            <div class="kv"><span>MATCHES</span><b id="cvMatches">0</b></div>
-            <div class="kv"><span>WINS</span><b class="a" id="cvWins">0</b></div>
-            <div class="kv"><span>TIME PLAYED</span><b id="cvTime">0m</b></div>
+        <div class="secGroup" data-sec="loadout">
+          <button class="btn ghost sm secBack">&lsaquo; MENU</button>
+          <div class="panel" data-rev>
+            <div class="ptitle"><span class="dot"></span>LOADOUT <i>// 1 PRIMARY + 1 SECONDARY + 1 THROWABLE</i></div>
+            <div class="tabs">
+              <div class="tab on" data-slot="0">PRIMARY</div>
+              <div class="tab" data-slot="1">SECONDARY</div>
+              <div class="tab" data-slot="2">THROWABLE</div>
+              <div class="tab" data-slot="3">OPERATOR</div>
+            </div>
+            <div class="wlist" id="wlist"></div>
+            <div class="row" style="margin-top:10px;justify-content:space-between">
+              <div class="chip">EQ: <b id="eqLine">—</b></div>
+              <button class="btn ghost sm" id="btnRandomLoad">RANDOMIZE</button>
+            </div>
           </div>
         </div>
 
-        <div class="panel" data-rev>
-          <div class="ptitle"><span class="dot"></span>SETTINGS</div>
-          <div class="row">
-            <div class="field"><label>MOUSE SENS <b class="mono" id="vSens">1.00</b></label><input id="setSens" type="range" min="20" max="300" value="100"></div>
-            <div class="field"><label>FIELD OF VIEW <b class="mono" id="vFov">85</b></label><input id="setFov" type="range" min="65" max="110" value="85"></div>
+        <div class="secGroup" data-sec="career">
+          <button class="btn ghost sm secBack">&lsaquo; MENU</button>
+          <div class="panel" data-rev>
+            <div class="ptitle"><span class="dot"></span>MASTERY &amp; CAREER</div>
+            <div id="mastList" style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px;max-height:min(42vh,380px);overflow:auto"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px">
+              <div class="kv"><span>DAMAGE DEALT</span><b id="cvDmg">0</b></div>
+              <div class="kv"><span>SHOTS FIRED</span><b id="cvShots">0</b></div>
+              <div class="kv"><span>ACCURACY</span><b class="g" id="cvAcc">0%</b></div>
+              <div class="kv"><span>MATCHES</span><b id="cvMatches">0</b></div>
+              <div class="kv"><span>WINS</span><b class="a" id="cvWins">0</b></div>
+              <div class="kv"><span>TIME PLAYED</span><b id="cvTime">0m</b></div>
+            </div>
           </div>
-          <div class="row" style="margin-top:8px">
-            <div class="field"><label>VOLUME <b class="mono" id="vVol">70</b></label><input id="setVol" type="range" min="0" max="100" value="70"></div>
-            <div class="field"><label>QUALITY</label><select id="setQual"><option value="low">LOW (MOBILE)</option><option value="med" selected>MEDIUM</option><option value="high">HIGH</option></select></div>
-          </div>
-          <div class="row" style="margin-top:10px;gap:8px">
-            <label class="chip" style="cursor:pointer"><input type="checkbox" id="setInvY" style="accent-color:#ffb648"> INVERT LOOK Y</label>
-            <label class="chip" style="cursor:pointer"><input type="checkbox" id="setShake" checked style="accent-color:#ffb648"> SCREEN SHAKE</label>
-            <label class="chip" style="cursor:pointer"><input type="checkbox" id="setTouch" style="accent-color:#ffb648"> TOUCH CONTROLS</label>
-            <label class="chip" style="cursor:pointer"><input type="checkbox" id="setShowFps" checked style="accent-color:#ffb648"> FPS COUNTER</label>
-            <label class="chip" style="cursor:pointer"><input type="checkbox" id="setView3p" style="accent-color:#ffb648"> THIRD PERSON [V]</label>
-            <label class="chip" style="cursor:pointer" title="Uses the operator's own arms in first person. Experimental: only third-person rifle poses exist."><input type="checkbox" id="setFpArms" style="accent-color:#ffb648"> OPERATOR ARMS (EXPERIMENTAL)</label>
+        </div>
+
+        <div class="secGroup" data-sec="settings">
+          <button class="btn ghost sm secBack">&lsaquo; MENU</button>
+          <div class="panel" data-rev>
+            <div class="ptitle"><span class="dot"></span>SETTINGS</div>
+            <div class="row">
+              <div class="field"><label>MOUSE SENS <b class="mono" id="vSens">1.00</b></label><input id="setSens" type="range" min="20" max="300" value="100"></div>
+              <div class="field"><label>FIELD OF VIEW <b class="mono" id="vFov">85</b></label><input id="setFov" type="range" min="65" max="110" value="85"></div>
+            </div>
+            <div class="row" style="margin-top:8px">
+              <div class="field"><label>VOLUME <b class="mono" id="vVol">70</b></label><input id="setVol" type="range" min="0" max="100" value="70"></div>
+              <div class="field"><label>QUALITY</label><select id="setQual"><option value="low">LOW (MOBILE)</option><option value="med" selected>MEDIUM</option><option value="high">HIGH</option></select></div>
+            </div>
+            <div class="row" style="margin-top:10px;gap:8px">
+              <label class="chip" style="cursor:pointer"><input type="checkbox" id="setInvY" style="accent-color:#ffb648"> INVERT LOOK Y</label>
+              <label class="chip" style="cursor:pointer"><input type="checkbox" id="setShake" checked style="accent-color:#ffb648"> SCREEN SHAKE</label>
+              <label class="chip" style="cursor:pointer"><input type="checkbox" id="setTouch" style="accent-color:#ffb648"> TOUCH CONTROLS</label>
+              <label class="chip" style="cursor:pointer"><input type="checkbox" id="setShowFps" checked style="accent-color:#ffb648"> FPS COUNTER</label>
+              <label class="chip" style="cursor:pointer"><input type="checkbox" id="setView3p" style="accent-color:#ffb648"> THIRD PERSON [V]</label>
+              <label class="chip" style="cursor:pointer" title="Uses the operator's own arms in first person. Experimental: only third-person rifle poses exist."><input type="checkbox" id="setFpArms" style="accent-color:#ffb648"> OPERATOR ARMS (EXPERIMENTAL)</label>
+            </div>
           </div>
         </div>
       </div>

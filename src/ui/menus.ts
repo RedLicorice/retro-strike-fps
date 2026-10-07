@@ -179,6 +179,18 @@ export const uiMenus = {
       vis('menu', false); vis('lobby', true);
       this.buildSlots(); this.previewDraw(); this.newArena(Lobby.seed); Net.setStatus();
     });
+    /* mobile master-detail: a nav tile drills into one section of #menuMain, '< MENU' backs out to the tile list */
+    $$('.navTile[data-sec]').forEach(t => t.addEventListener('click', () => {
+      $('menuMain').classList.add('drilled');
+      $$('.secGroup').forEach(g => g.classList.toggle('active', g.dataset.sec === t.dataset.sec));
+      $('menuMain').scrollTop = 0;
+      SFX.uiBig();
+    }));
+    $$('.secBack').forEach(b => b.addEventListener('click', () => {
+      $('menuMain').classList.remove('drilled');
+      $$('.secGroup').forEach(g => g.classList.remove('active'));
+    }));
+    $('navMultiplayer').addEventListener('click', () => $('btnLobby').click());
     $('btnBackMenu').addEventListener('click', () => { vis('lobby', false); vis('menu', true); });
     $('btnStartMatch').addEventListener('click', () => this.startFromLobby());
     $('btnAddBot').addEventListener('click', () => this.lobbyBot(1));

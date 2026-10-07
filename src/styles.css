@@ -90,6 +90,17 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
 #menuMain{flex:1;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:18px;padding:8px 26px 14px;overflow:auto;align-content:start}
 #menuMain::-webkit-scrollbar{width:8px}#menuMain::-webkit-scrollbar-thumb{background:var(--line2)}
 .colL,.colR{display:flex;flex-direction:column;gap:16px;min-width:0}
+.secGroup{display:flex;flex-direction:column;gap:16px}
+.secBack{display:none;align-self:flex-start}
+
+/* mobile master list: a flat row of nav tiles into each section (hidden on desktop, see RESPONSIVE) */
+#menuNav{display:none}
+.navTile{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;text-align:left;cursor:pointer;
+  padding:14px 16px;background:linear-gradient(90deg,rgba(38,46,28,.9),rgba(14,18,11,.55));
+  border:1px solid var(--line);border-left:4px solid var(--line2);color:inherit;font-family:inherit;transition:.18s}
+.navTile:hover,.navTile:active{border-left-color:var(--amber);transform:translateX(5px)}
+.navTile .nt{font-family:'Black Ops One';font-size:15px;letter-spacing:.08em;color:#efe6cd;text-shadow:2px 2px 0 #000}
+.navTile .nd{font-family:'Share Tech Mono';font-size:11px;color:var(--mut)}
 
 /* mode bars */
 .mode{position:relative;display:flex;align-items:center;gap:14px;padding:13px 16px;cursor:pointer;
@@ -319,6 +330,13 @@ table.sbT tr.t1 td:first-child{box-shadow:inset 3px 0 0 var(--blue)}
   #menuTop{padding:14px 16px 4px;flex-direction:column}
   .topStats{max-width:100%;justify-content:flex-start}
   #menuBot{padding:8px 14px 12px}
+  /* master-detail: one section (or the nav list) on screen at a time, so there's nothing to scroll past */
+  #menuMain:not(.drilled) #menuNav{display:flex;flex-direction:column;gap:10px}
+  #menuMain:not(.drilled) .secGroup{display:none}
+  #menuMain.drilled .secGroup{display:none}
+  #menuMain.drilled .secGroup.active{display:flex}
+  .secBack{display:inline-flex;margin-bottom:2px}
+  .desktopOnly{display:none}
   .lobbyGrid{grid-template-columns:1fr}
   #radar{width:118px;height:118px;left:10px;top:10px}
   #hudBL{left:10px;bottom:170px;width:52vw}
