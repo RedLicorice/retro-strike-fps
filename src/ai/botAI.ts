@@ -140,7 +140,8 @@ export const BotAI = {
     const tv = tgt.vel || { x: 0, z: 0 };
     const tof = l / 220;
     dx += (tv.x * tof) / l; dz += (tv.z * tof) / l;
-    const err = (Math.min(d.hip, 2.4) * .5 + .55) * DEG * (1.9 / SK) * clamp(dist / 22, .5, 2.6) * (a.speed > 2 ? 1.6 : 1);
+    const far = dist > 50 ? 1 + (dist - 50) / 35 : 1; /* accuracy keeps degrading well past the old 57m cap, so long-range one-shots get rarer */
+    const err = (Math.min(d.hip, 2.4) * .5 + .55) * DEG * (1.9 / SK) * clamp(dist / 22, .5, 2.6) * far * (a.speed > 2 ? 1.6 : 1);
     const ra = rnd(TAU), rr = Math.random() * err;
     dx += Math.cos(ra) * rr; dy += Math.sin(ra) * rr * .7; dz += Math.cos(ra + 1) * rr;
     const dl = v3len(dx, dy, dz); dx /= dl; dy /= dl; dz /= dl;

@@ -252,7 +252,8 @@ export const Player = {
     const bs = this.speed * (this.sprint ? 1.3 : 1) * (this.onGround ? 1 : 0);
     this.bob += dt * bs * 1.55;
     this.bobA = damp(this.bobA, Math.min(1, bs / 6), 8, dt);
-    this.roll = damp(this.roll, -clamp(this.vel.x * .006, -.05, .05) * (this.sprint ? 2.2 : 1) + (this.sliding > 0 ? .09 : 0), 8, dt);
+    const latVel = this.vel.x * cos - this.vel.z * sin;   /* velocity along the camera's right axis, not world X — the lean must track strafe, not facing */
+    this.roll = damp(this.roll, -clamp(latVel * .006, -.05, .05) * (this.sprint ? 2.2 : 1) + (this.sliding > 0 ? .09 : 0), 8, dt);
 
   },
 
