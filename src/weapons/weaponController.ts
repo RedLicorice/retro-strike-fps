@@ -16,6 +16,7 @@ import { Input } from '../input/input';
 import { Net } from '../net/index';
 import { Player } from '../player/player';
 import { buildThrowable } from '../render/gunModels';
+import { predictThrowPath } from '../game/throwables';
 import { buildViewWeapon, viewPlacement } from '../render/viewmodel';
 import { groupHits, spreadDirs } from '../combat/ballistics';
 import { reloadTime } from '../data/weapons';
@@ -27,11 +28,17 @@ const FP_HANDS_RIG = false;
 /* aim-in/out takes 70% of each weapon's adsT (30% faster than the base data) */
 const ADS_TIME_SCALE = .7;
 
+/* throw launch velocity — shared by the actual throw and the trajectory preview, so the arc never lies */
+const THROW_FWD = 23, THROW_UP = 15, THROW_KICK = 2.6;
+function throwVel(fwd){ return V3(fwd.x * THROW_FWD + Player.vel.x * .4, fwd.y * THROW_UP + THROW_KICK, fwd.z * THROW_FWD + Player.vel.z * .4); }
+const TRAJ_DOTS = 16;
+
 export const Wep = {
   ids: ['ak47', 'm1911', 'frag'], slot: 0, def: null, vm: null, vmPos: V3(.24, -.22, .62), vmRot: V3(0, 0, 0),
   ammo: {} as Record<string, { mag: number; res: number }>, aimT: 0, aiming: false, recP: 0, recY: 0, kick: 0, kickR: 0, fireT: 0, trigger: false,
   reloadT: 0, reloadDur: 0, reloadStage: 0, swapT: 0, spray: 0, sprayT: 0, lastShot: 0, meleeT: 0, meleeDir: 1,
   throwCd: 0, fp: null as FPArms | null, hands: null as FPHands | null, markers: null as WeaponMarkers | null, thCount: {} as Record<string, number>, vmMuz: null, adsPos: V3(0, 0, 0), adsRot: V3(0, 0, 0), scoped: false, dryT: 0,
+  trajDots: null as BABYLON.Mesh[] | null,
 
   init(loadout){
     /* experimental: first-person arms from the operator model (the rifle clips are third-person poses) */
@@ -239,11 +246,42 @@ export const Wep = {
     this.thCount[d.id]--; this.throwCd = 1.05; this.kick = 1.4;
     const fwd = ctx.cam.getDirection(BABYLON.Axis.Z);
     const mz = this.muzzleWorld();
-    Game.spawnThrowable(d, mz, V3(fwd.x * 17 + Player.vel.x * .4, fwd.y * 14 + 2.6, fwd.z * 17 + Player.vel.z * .4), Player);
+    Game.spawnThrowable(d, mz, throwVel(fwd), Player);
     SFX.pin(); Player.combatT = 0;
     if (Game.local) Game.local.lastThrow = now();
     if (this.thCount[d.id] <= 0) setTimeout(() => { if (this.slot === 2) this.switchTo(0); }, 420);
     UI.gunChanged();
+  },
+  /* beaded arc preview of where the equipped throwable will actually land, bounces included.
+     Plain WebGL lines render at a fixed ~1 physical pixel no matter what width is requested (a
+     long-standing cross-browser limitation), which made a line-mesh version of this all but
+     invisible — small billboarded dots have real screen-space size instead, so they read clearly. */
+  updateTrajectory(){
+    const d = this.def;
+    if (!d || d.slot !== 2 || (this.thCount[d.id] || 0) <= 0){
+      if (this.trajDots) for (const m of this.trajDots) m.setEnabled(false);
+      return;
+    }
+    if (!this.trajDots){
+      const mat = new BABYLON.StandardMaterial('trajDotMat', ctx.scene);
+      mat.disableLighting = true; mat.emissiveColor = new BABYLON.Color3(1, .74, .28);
+      mat.diffuseColor = BABYLON.Color3.Black(); mat.specularColor = BABYLON.Color3.Black();
+      this.trajDots = [];
+      for (let i = 0; i < TRAJ_DOTS; i++){
+        const dot = BABYLON.MeshBuilder.CreateDisc('trajDot' + i, { radius: .05, tessellation: 8 }, ctx.scene);
+        dot.material = mat; dot.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL; dot.isPickable = false;
+        this.trajDots.push(dot);
+      }
+    }
+    const fwd = ctx.cam.getDirection(BABYLON.Axis.Z);
+    const pts = predictThrowPath(this.muzzleWorld(), throwVel(fwd));
+    const n = Math.min(TRAJ_DOTS, pts.length);
+    for (let i = 0; i < this.trajDots.length; i++){
+      if (i >= n){ this.trajDots[i].setEnabled(false); continue; }
+      const idx = Math.floor((i / Math.max(1, n - 1)) * (pts.length - 1));
+      this.trajDots[i].position.copyFrom(pts[idx]);
+      this.trajDots[i].setEnabled(true);
+    }
   },
   muzzleWorld(){
     if (ctx.view3p > .5 && Game.local){ const m = Game.local.muzzleWorld(); if (m) return m; }
@@ -260,6 +298,7 @@ export const Wep = {
       if (this.vm) this.vm.setEnabled(false);
       if (this.fp) this.fp.setEnabled(false);
       if (this.hands) this.hands.setEnabled(false);
+      if (this.trajDots) for (const m of this.trajDots) m.setEnabled(false);
       /* dying (or grabbing a ledge: both hands are on it) cancels a reload in progress (and its HUD bar) */
       if (this.reloadT > 0 || this.reloadStage){ this.reloadT = 0; this.reloadStage = 0; UI.reloadBar(-1); }
       $('scopeOv').classList.remove('on');
@@ -311,6 +350,7 @@ export const Wep = {
     if (Input.touch.swap){ Input.touch.swap = false; this.cycle(1); }
     if (Input.touch.reload){ Input.touch.reload = false; this.reload(); }
     if (Input.touch.thr){ Input.touch.thr = false; if (this.slot === 2) this.throwIt(); else this.switchTo(2); }
+    this.updateTrajectory();
 
     /* ---- viewmodel pose ---- */
     const vm = this.vm; if (!vm) return;

@@ -1,13 +1,18 @@
 import * as BABYLON from 'babylonjs';
 import { ctx } from '../core/context';
 
-/* Team outlines: a plain silhouette border, 1–2 px, outer edge only.
+/* Team outlines: a plain silhouette border, thin, outer edge only.
    1. A mask target renders outlined bodies in flat team colour, depth-tested against everything else
       (world, other bodies, viewmodel) drawn flat black, so hidden parts leave no mask: no wallhack, and
       the viewmodel (drawn after a depth clear) paints over bodies behind it.
-   2. A post-process colours only pixels *outside* the mask that touch it within OUTLINE_PX. Inner detail
-      (gear, limbs, overlapping meshes) never produces a line because the whole body is one flat colour. */
-export const OUTLINE_PX = 1.5;
+   2. A post-process colours only pixels *outside* the mask that touch it within OUTLINE_PX. The mask is
+      rendered at MASK_RATIO of screen size with bilinear sampling, so fine silhouette noise (finger gaps,
+      straps, the gun's thin profile) blurs away into the broad body shape before the edge pass ever sees
+      it — the contour traces the outer body, not every small concavity a full-res mask would catch.
+      Inner detail (gear, limbs, overlapping meshes) never produces a line either way, since the whole
+      body is one flat colour. */
+export const OUTLINE_PX = 1;
+const MASK_RATIO = .4;
 const COLORS = { enemy: new BABYLON.Color3(.95, .12, .1), ally: new BABYLON.Color3(.2, .55, 1) };
 
 BABYLON.Effect.ShadersStore['rsOutlineFragmentShader'] = `
@@ -52,7 +57,7 @@ export const Outlines = {
       return m;
     };
     this.mats = { enemy: flat('ol_enemy', COLORS.enemy), ally: flat('ol_ally', COLORS.ally), hide: flat('ol_hide', null), front: flat('ol_front', new BABYLON.Color3(0, 1, 0)) };
-    const rtt = new BABYLON.RenderTargetTexture('outlineMask', { ratio: 1 }, sc, false, true, BABYLON.Constants.TEXTURETYPE_UNSIGNED_BYTE, false, BABYLON.Texture.NEAREST_SAMPLINGMODE);
+    const rtt = new BABYLON.RenderTargetTexture('outlineMask', { ratio: MASK_RATIO }, sc, false, true, BABYLON.Constants.TEXTURETYPE_UNSIGNED_BYTE, false, BABYLON.Texture.BILINEAR_SAMPLINGMODE);
     rtt.clearColor = new BABYLON.Color4(0, 0, 0, 0);
     rtt.activeCamera = ctx.cam;
     rtt.renderList = [];

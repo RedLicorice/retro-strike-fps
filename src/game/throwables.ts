@@ -6,6 +6,49 @@ import { Player } from '../player/player';
 import { buildThrowable } from '../render/gunModels';
 import { MAP } from '../world/map/index';
 
+export const GRENADE_GRAVITY = 21, GRENADE_RADIUS = .09;
+
+/* One physics bounce-step, shared by the live simulation below and the trajectory preview
+   (weaponController.ts) — so the preview arc always matches where the throw will actually land. */
+export function stepGrenade(pos, vel, dt, r = GRENADE_RADIUS){
+  vel.y -= GRENADE_GRAVITY * dt;
+  const np = pos.clone();
+  np.x += vel.x * dt; np.y += vel.y * dt; np.z += vel.z * dt;
+  const sp = Math.hypot(vel.x, vel.z) * dt + 1;
+  const B = MAP.near(pos.x - sp, pos.z - sp, pos.x + sp, pos.z + sp);
+  const hitBox = (x, y, z) => { for (let k = 0; k < B.length; k++){ const b = B[k];
+    if (x > b.x0 - r && x < b.x1 + r && z > b.z0 - r && z < b.z1 + r && y > b.y0 - r && y < b.y1 + r) return b; }
+    return null; };
+  let bounced = false;
+  let b = hitBox(np.x, pos.y, pos.z);
+  if (b){ vel.x *= -.42; vel.z *= -.42; np.x = pos.x; bounced = true; }
+  if (hitBox(np.x, np.y, np.z)){ vel.z *= -.42; np.z = pos.z; bounced = true; }
+  b = hitBox(np.x, np.y, np.z);
+  if (b){
+    if (vel.y < 0 && np.y > b.y1 - .2){ np.y = b.y1 + r; vel.y *= -.34; vel.x *= .72; vel.z *= .72; }
+    else { vel.y *= -.34; np.y = pos.y; }
+    bounced = true;
+  }
+  const gr = MAP.groundAt(np.x, np.z, np.y + .3, .3);
+  if (np.y < gr + r){ np.y = gr + r; vel.y *= -.34; vel.x *= .7; vel.z *= .7; bounced = true; }
+  pos.copyFrom(np);
+  return bounced;
+}
+
+/* client-only prediction for the trajectory preview: same stepper, no SFX/mesh side effects */
+export function predictThrowPath(origin, vel0, maxBounces = 2, maxT = 3){
+  const dt = 1 / 30;
+  const pos = origin.clone(), vel = vel0.clone();
+  const pts = [pos.clone()];
+  let bounces = 0, t = 0;
+  while (t < maxT && bounces <= maxBounces){
+    t += dt;
+    if (stepGrenade(pos, vel, dt)) bounces++;
+    pts.push(pos.clone());
+  }
+  return pts;
+}
+
 export const gameThrowables = {
   spawnThrowable(def, pos, vel, owner){
     const m = buildThrowable(def.id, false);
@@ -20,33 +63,9 @@ export const gameThrowables = {
     for (let i = this.grenades.length - 1; i >= 0; i--){
       const g = this.grenades[i];
       g.t -= dt;
-      g.vel.y -= 21 * dt;
-      const np = g.pos.clone();
-      np.x += g.vel.x * dt; np.y += g.vel.y * dt; np.z += g.vel.z * dt;
-      /* world collision (simple) */
-      const r = .09;
-      const sp = Math.hypot(g.vel.x, g.vel.z) * dt + 1;
-      const B = MAP.near(g.pos.x - sp, g.pos.z - sp, g.pos.x + sp, g.pos.z + sp).slice();
-      const hitBox = (x, y, z) => {
-        for (let k = 0; k < B.length; k++){ const b = B[k];
-          if (x > b.x0 - r && x < b.x1 + r && z > b.z0 - r && z < b.z1 + r && y > b.y0 - r && y < b.y1 + r) return b; }
-        return null;
-      };
-      let b = hitBox(np.x, g.pos.y, g.pos.z);
-      if (b){ g.vel.x *= -.42; g.vel.z *= -.42; np.x = g.pos.x; }
-      b = hitBox(np.x, np.y, np.z + g.vel.z * dt * 0);
-      if (hitBox(np.x, np.y, np.z)){ g.vel.z *= -.42; np.z = g.pos.z; }
-      b = hitBox(np.x, np.y, np.z);
-      if (b){
-        if (g.vel.y < 0 && np.y > b.y1 - .2){ np.y = b.y1 + r; g.vel.y *= -.34; g.vel.x *= .72; g.vel.z *= .72; }
-        else { g.vel.y *= -.34; np.y = g.pos.y; }
-        if (Math.abs(g.vel.y) > 2) SFX.noise(.06, .08, 1200, 400, 2);
-      }
-      const gr = MAP.groundAt(np.x, np.z, np.y + .3, .3);
-      if (np.y < gr + r){ np.y = gr + r; g.vel.y *= -.34; g.vel.x *= .7; g.vel.z *= .7;
-        if (Math.abs(g.vel.y) > 1.6) SFX.noise(.06, .09, 1100, 380, 2); }
-      g.pos.copyFrom(np);
-      g.mesh.position.copyFrom(np);
+      if (stepGrenade(g.pos, g.vel, dt) && Math.abs(g.vel.y) > 1.6) SFX.noise(.06, .085, 1150, 390, 2);
+      const gr = MAP.groundAt(g.pos.x, g.pos.z, g.pos.y + .3, .3);
+      g.mesh.position.copyFrom(g.pos);
       g.mesh.rotation.x += g.spin.x * dt; g.mesh.rotation.y += g.spin.y * dt; g.mesh.rotation.z += g.spin.z * dt;
       g.spin.scaleInPlace(Math.exp(-1.4 * dt));
       if (g.def.kind === 'fire' && g.t <= 0){ /* molotov ignites on burst */ }
