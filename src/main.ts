@@ -41,6 +41,7 @@ const Boot = {
         vis('boot', false); vis('menu', true);
         Game.state = 'menu';
         UI.previewDraw();
+        UI.autoJoinFromLink();
         return;
       }
       const [txt, fn] = this.steps[i];

@@ -50,13 +50,14 @@ export const uiMenus = {
     $('marqTxt').textContent = $('marqTxt').textContent.repeat(2);
   },
 
-  /* lobby map picker: the arena, a procedural city, and one city per heightmap image in public/heightmaps */
+  /* map picker (main menu + lobby, kept in sync): the arena, a procedural city, and one city per heightmap image in public/heightmaps */
   buildMaps(){
     const opts = [['arena', 'CQB ARENA (66 m)'], ['city', 'CITY — PROCEDURAL (400 m)'], ...Heightmaps.list.map(n => ['city:' + n, 'CITY — ' + n.toUpperCase().replace(/[_-]/g, ' ') + ' (400 m)'])];
-    $('lbMap').innerHTML = opts.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('');
+    const html = opts.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('');
+    $('lbMap').innerHTML = html; $('inMap').innerHTML = html;
     const saved = Save.data.map;
     Lobby.map = opts.some(o => o[0] === saved) ? saved : 'arena';
-    $('lbMap').value = Lobby.map;
+    $('lbMap').value = Lobby.map; $('inMap').value = Lobby.map;
   },
 
   buildWeapons(){
@@ -122,9 +123,14 @@ export const uiMenus = {
     bind('setSens', 'sens', v => v / 100);
     bind('setFov', 'fov', v => +v);
     bind('setVol', 'vol', v => { SFX.setVol(v / 100); return v / 100; });
-    $('setQual').addEventListener('change', e => { S.quality = e.target.value; applyQuality(S.quality); Save.flush(); });
+    /* quality + checkboxes also live in the pause menu (id+'2'), so every toggle mirrors both ways */
+    const sel = (id, key, fn?) => { const el = $(id); if (!el) return; el.value = S[key];
+      el.addEventListener('change', () => { S[key] = el.value; if (fn) fn(el.value); Save.flush();
+        const mirror = $(id + '2'); if (mirror) mirror.value = el.value; }); };
+    sel('setQual', 'quality', v => applyQuality(v));
     const cb = (id, key, fn?) => { const el = $(id); if (!el) return; el.checked = !!S[key];
-      el.addEventListener('change', () => { S[key] = el.checked; if (fn) fn(el.checked); Save.flush(); }); };
+      el.addEventListener('change', () => { S[key] = el.checked; if (fn) fn(el.checked); Save.flush();
+        const mirror = $(id + '2'); if (mirror) mirror.checked = el.checked; }); };
     cb('setInvY', 'invY'); cb('setShake', 'shake'); cb('setView3p', 'view3p'); cb('setFpArms', 'fpArms');
     cb('setTouch', 'touch', v => { $('touch').classList.toggle('hidden', !(v && Game.state === 'play')); });
     cb('setShowFps', 'fps', v => { $('fpsC').style.display = v ? 'block' : 'none'; });
@@ -132,8 +138,16 @@ export const uiMenus = {
     $('vSens').textContent = S.sens.toFixed(2); $('setSens').value = S.sens * 100;
     $('vFov').textContent = S.fov; $('setFov').value = S.fov;
     $('vVol').textContent = Math.round(S.vol * 100); $('setVol').value = S.vol * 100;
-    $('setQual').value = S.quality;
     $('inName').value = S.name || Save.data.name;
+    /* pause menu mirrors for quality + checkboxes: same key, reverse direction */
+    const sel2 = (id2, mainId, key, fn?) => { const el = $(id2); if (!el) return; el.value = S[key];
+      el.addEventListener('change', () => { S[key] = el.value; if (fn) fn(el.value); Save.flush(); $(mainId).value = el.value; }); };
+    sel2('setQual2', 'setQual', 'quality', v => applyQuality(v));
+    const cb2 = (id2, mainId, key, fn?) => { const el = $(id2); if (!el) return; el.checked = !!S[key];
+      el.addEventListener('change', () => { S[key] = el.checked; if (fn) fn(el.checked); Save.flush(); $(mainId).checked = el.checked; }); };
+    cb2('setInvY2', 'setInvY', 'invY'); cb2('setShake2', 'setShake', 'shake'); cb2('setView3p2', 'setView3p', 'view3p'); cb2('setFpArms2', 'setFpArms', 'fpArms');
+    cb2('setTouch2', 'setTouch', 'touch', v => { $('touch').classList.toggle('hidden', !(v && Game.state === 'play')); });
+    cb2('setShowFps2', 'setShowFps', 'fps', v => { $('fpsC').style.display = v ? 'block' : 'none'; });
     /* pause menu mirrors */
     const s2 = $('setSens2'), f2 = $('setFov2'), v2 = $('setVol2');
     if (s2){ s2.value = S.sens * 100; $('vSens2').textContent = S.sens.toFixed(2);
@@ -177,7 +191,8 @@ export const uiMenus = {
     });
     $('lbMode').addEventListener('change', e => { Lobby.mode = e.target.value; this.modeSel = e.target.value;
       $$('#modeList .mode').forEach(o => o.classList.toggle('sel', o.dataset.m === e.target.value)); this.buildSlots(); });
-    $('lbMap').addEventListener('change', e => { Lobby.map = e.target.value; Save.data.map = Lobby.map; Save.flush(); this.newArena(Lobby.seed || MAP.seed); Net.lobbySync(); });
+    $('lbMap').addEventListener('change', e => { Lobby.map = e.target.value; Save.data.map = Lobby.map; Save.flush(); $('inMap').value = Lobby.map; this.newArena(Lobby.seed || MAP.seed); Net.lobbySync(); });
+    $('inMap').addEventListener('change', e => { Lobby.map = e.target.value; Save.data.map = Lobby.map; Save.flush(); $('lbMap').value = Lobby.map; this.newArena(Lobby.seed || $('inSeed').value || MAP.seed); Net.lobbySync(); });
     $('btnNewSeed').addEventListener('click', () => { Lobby.seed = ($('lbSeed').value || makeSeed()).toUpperCase(); this.newArena(Lobby.seed); Net.lobbySync(); });
     $('lbSeed').addEventListener('input', e => { Lobby.seed = e.target.value.toUpperCase(); });
     /* signalling */
@@ -200,6 +215,13 @@ export const uiMenus = {
       try { navigator.clipboard.writeText(ta.value); } catch (e){ document.execCommand && document.execCommand('copy'); }
       UI.toast('TOKEN COPIED', 'g');
     });
+    $('btnCopyLink').addEventListener('click', () => {
+      const tok = $('sigLocal').value.trim();
+      if (!tok){ UI.toast('HOST A ROOM FIRST', 'r'); SFX.deny(); return; }
+      const link = location.origin + location.pathname + '?join=' + encodeURIComponent(tok);
+      try { navigator.clipboard.writeText(link); } catch (e){}
+      UI.toast('JOIN LINK COPIED', 'g');
+    });
     /* pause + end */
     $('btnResume').addEventListener('click', () => UI.pause(false));
     $('btnQuit').addEventListener('click', () => { Game.toMenu(); UI.pause(false); });
@@ -210,6 +232,18 @@ export const uiMenus = {
     $('btnEndMenu').addEventListener('click', () => Game.toMenu());
     /* click anywhere resumes audio */
     addEventListener('pointerdown', () => { SFX.init(); SFX.resume(); }, { once: false });
+  },
+
+  /* a host's "COPY JOIN LINK" lands here as ?join=<token>: drop straight into the lobby, pre-fill
+     and fire the join so the peer only has to send one answer token back, not paste the host's offer too */
+  autoJoinFromLink(){
+    const tok = new URLSearchParams(location.search).get('join');
+    if (!tok) return;
+    history.replaceState(null, '', location.pathname + location.hash);
+    $('btnLobby').click();
+    $('sigRemote').value = tok;
+    UI.toast('JOINING VIA LINK...', 'g');
+    $('btnJoin').click();
   },
 
   lobbyBot(dir, quiet){

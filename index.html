@@ -57,6 +57,7 @@
           <div class="row" style="margin-bottom:10px">
             <div class="field"><label>CALLSIGN</label><input id="inName" maxlength="14" placeholder="VIPER"></div>
             <div class="field"><label>ARENA SEED</label><input id="inSeed" maxlength="16" placeholder="random"></div>
+            <div class="field"><label>MAP</label><select id="inMap"></select></div>
           </div>
           <div class="row" style="margin-bottom:12px">
             <div class="field"><label>BOTS (FILL TO 8)</label><input id="inBots" type="number" min="0" max="7" value="5"></div>
@@ -184,14 +185,15 @@
           <label class="mono" style="font-size:10px;letter-spacing:.14em;color:var(--mut)">LOCAL TOKEN (SEND THIS TO YOUR PEER)</label>
           <textarea class="sigbox" id="sigLocal" readonly placeholder="— generate a token first —"></textarea>
           <div class="row" style="margin:8px 0">
+            <button class="btn sm hot" id="btnCopyLink">COPY JOIN LINK</button>
             <button class="btn sm" id="btnCopyLocal">COPY TOKEN</button>
             <button class="btn sm ghost" id="btnAccept">ACCEPT PEER TOKEN &raquo;</button>
           </div>
           <label class="mono" style="font-size:10px;letter-spacing:.14em;color:var(--mut)">PEER TOKEN (PASTE THEIRS HERE)</label>
           <textarea class="sigbox" id="sigRemote" placeholder="paste peer token..."></textarea>
           <div class="mono" style="font-size:11px;color:var(--mut);margin-top:8px;line-height:1.5" id="sigHelp">
-            HOST: click <b style="color:var(--amber)">HOST ROOM</b>, copy your token, send it to the peer (any channel / QR). Paste their reply token and click <b style="color:var(--amber)">ACCEPT</b>.<br>
-            JOIN: paste the host token, click <b style="color:var(--amber)">JOIN ROOM</b>, copy your answer token back to the host.
+            HOST: click <b style="color:var(--amber)">HOST ROOM</b>, then <b style="color:var(--amber)">COPY JOIN LINK</b> and send it to your peer. Opening it auto-joins and gives them an answer token — paste that below and click <b style="color:var(--amber)">ACCEPT</b>.<br>
+            JOIN: paste the host token (or open their link), click <b style="color:var(--amber)">JOIN ROOM</b>, copy your answer token back to the host.
           </div>
         </div>
       </div>
@@ -278,6 +280,15 @@
       <div class="field"><label>MOUSE SENS <b class="mono" id="vSens2">1.00</b></label><input id="setSens2" type="range" min="20" max="300" value="100"></div>
       <div class="field" style="margin-top:8px"><label>FOV <b class="mono" id="vFov2">85</b></label><input id="setFov2" type="range" min="65" max="110" value="85"></div>
       <div class="field" style="margin-top:8px"><label>VOLUME <b class="mono" id="vVol2">70</b></label><input id="setVol2" type="range" min="0" max="100" value="70"></div>
+      <div class="field" style="margin-top:8px"><label>QUALITY</label><select id="setQual2"><option value="low">LOW (MOBILE)</option><option value="med" selected>MEDIUM</option><option value="high">HIGH</option></select></div>
+      <div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
+        <label class="chip" style="cursor:pointer"><input type="checkbox" id="setInvY2" style="accent-color:#ffb648"> INVERT LOOK Y</label>
+        <label class="chip" style="cursor:pointer"><input type="checkbox" id="setShake2" style="accent-color:#ffb648"> SCREEN SHAKE</label>
+        <label class="chip" style="cursor:pointer"><input type="checkbox" id="setTouch2" style="accent-color:#ffb648"> TOUCH CONTROLS</label>
+        <label class="chip" style="cursor:pointer"><input type="checkbox" id="setShowFps2" style="accent-color:#ffb648"> FPS COUNTER</label>
+        <label class="chip" style="cursor:pointer"><input type="checkbox" id="setView3p2" style="accent-color:#ffb648"> THIRD PERSON [V]</label>
+        <label class="chip" style="cursor:pointer" title="Uses the operator's own arms in first person. Experimental: only third-person rifle poses exist."><input type="checkbox" id="setFpArms2" style="accent-color:#ffb648"> OPERATOR ARMS (EXPERIMENTAL)</label>
+      </div>
     </div>
   </div></div>
 
