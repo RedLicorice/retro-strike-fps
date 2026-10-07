@@ -32,8 +32,8 @@ export const uiMenus = {
       '<div><div class="mt">' + m.t + '</div><div class="md">' + m.d + '</div></div><div class="mk">' + m.k + '</div></div>').join('');
     $$('#modeList .mode').forEach(el => el.addEventListener('click', () => {
       $$('#modeList .mode').forEach(o => o.classList.remove('sel')); el.classList.add('sel');
-      this.modeSel = el.dataset.m; SFX.uiBig();
-      const lb = $('lbMode'); if (lb) lb.value = this.modeSel;
+      this.modeSel = el.dataset.m; Lobby.mode = el.dataset.m; SFX.uiBig();
+      this.buildSlots(); Net.lobbySync();
     }));
     /* loadout tabs */
     $$('.tab').forEach(t => t.addEventListener('click', () => {
@@ -50,14 +50,31 @@ export const uiMenus = {
     $('marqTxt').textContent = $('marqTxt').textContent.repeat(2);
   },
 
-  /* map picker (main menu + lobby, kept in sync): the arena, a procedural city, and one city per heightmap image in public/heightmaps */
+  /* the play tab always shows slots/signaling now (no separate "multiplayer" screen to opt into), so seed
+     Lobby once the opening scene exists — MAP.seed/mapId aren't set yet inside boot(), which runs first */
+  initLobbyState(){
+    Lobby.init(Save.data.name, this.modeSel, MAP.seed, 5, +$('inLimit').value || 25, +$('inSkill').value || 1);
+    $('inSeed').value = Lobby.seed;
+    this.buildSlots(); this.previewDraw(); Net.setStatus();
+  },
+
+  /* a tile picks the #menuMain detail pane (persistent sidebar on wide screens); on narrow/landscape-phone
+     screens the same call also drills in full-screen, with '< MENU' backing out to the tile list */
+  showSection(sec){
+    $('menuMain').classList.add('drilled');
+    $$('.navTile[data-sec]').forEach(o => o.classList.toggle('sel', o.dataset.sec === sec));
+    $$('.secGroup').forEach(g => g.classList.toggle('active', g.dataset.sec === sec));
+    $('menuMain').scrollTop = 0;
+  },
+
+  /* map picker: the arena, a procedural city, and one city per heightmap image in public/heightmaps */
   buildMaps(){
     const opts = [['arena', 'CQB ARENA (66 m)'], ['city', 'CITY — PROCEDURAL (400 m)'], ...Heightmaps.list.map(n => ['city:' + n, 'CITY — ' + n.toUpperCase().replace(/[_-]/g, ' ') + ' (400 m)'])];
     const html = opts.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('');
-    $('lbMap').innerHTML = html; $('inMap').innerHTML = html;
+    $('inMap').innerHTML = html;
     const saved = Save.data.map;
     Lobby.map = opts.some(o => o[0] === saved) ? saved : 'arena';
-    $('lbMap').value = Lobby.map; $('inMap').value = Lobby.map;
+    $('inMap').value = Lobby.map;
   },
 
   buildWeapons(){
@@ -162,8 +179,8 @@ export const uiMenus = {
     const blip = el => el && el.addEventListener('click', () => { SFX.init(); SFX.resume(); SFX.ui(); });
     $$('.btn').forEach(blip);
     $('btnReseed').addEventListener('click', () => {
-      const s = makeSeed(); $('inSeed').value = s; Lobby.seed = s; $('lbSeed').value = s;
-      this.newArena(s); SFX.uiBig();
+      const s = makeSeed(); $('inSeed').value = s; Lobby.seed = s;
+      this.newArena(s); Net.lobbySync(); SFX.uiBig();
     });
     $('btnRandomLoad').addEventListener('click', () => {
       Save.data.loadout = { 0: pick(PRIMARY_IDS), 1: pick(SECONDARY_IDS), 2: pick(THROW_IDS) };
@@ -172,26 +189,10 @@ export const uiMenus = {
     $('inName').addEventListener('input', e => { Save.data.name = (e.target.value || 'VIPER').toUpperCase().slice(0, 14); Save.flush(); });
     $('inSeed').addEventListener('input', e => { Lobby.seed = e.target.value.toUpperCase(); });
     $('btnDeploy').addEventListener('click', () => this.deploy());
-    $('btnLobby').addEventListener('click', () => {
-      Save.data.name = ($('inName').value || 'VIPER').toUpperCase();
-      Lobby.init(Save.data.name, this.modeSel, ($('inSeed').value || makeSeed()).toUpperCase(), +$('inBots').value || 0, +$('inLimit').value || 25, +$('inSkill').value);
-      $('lbSeed').value = Lobby.seed; $('lbMode').value = Lobby.mode; $('lbMap').value = Lobby.map;
-      vis('menu', false); vis('lobby', true);
-      this.buildSlots(); this.previewDraw(); this.newArena(Lobby.seed); Net.setStatus();
-    });
     /* nav tile picks which #menuMain section is the detail pane (persistent sidebar on wide screens).
        On narrow/landscape-phone screens the same click also drills in full-screen; '< MENU' backs out to the tile list. */
-    $$('.navTile[data-sec]').forEach(t => t.addEventListener('click', () => {
-      $('menuMain').classList.add('drilled');
-      $$('.navTile[data-sec]').forEach(o => o.classList.toggle('sel', o === t));
-      $$('.secGroup').forEach(g => g.classList.toggle('active', g.dataset.sec === t.dataset.sec));
-      $('menuMain').scrollTop = 0;
-      SFX.uiBig();
-    }));
+    $$('.navTile[data-sec]').forEach(t => t.addEventListener('click', () => { this.showSection(t.dataset.sec); SFX.uiBig(); }));
     $$('.secBack').forEach(b => b.addEventListener('click', () => { $('menuMain').classList.remove('drilled'); }));
-    $('navMultiplayer').addEventListener('click', () => $('btnLobby').click());
-    $('btnBackMenu').addEventListener('click', () => { vis('lobby', false); vis('menu', true); });
-    $('btnStartMatch').addEventListener('click', () => this.startFromLobby());
     $('btnAddBot').addEventListener('click', () => this.lobbyBot(1));
     $('btnRemBot').addEventListener('click', () => this.lobbyBot(-1));
     $('btnFill').addEventListener('click', () => { while (Lobby.count() < 8) this.lobbyBot(1, true); this.buildSlots(); Net.lobbySync(); });
@@ -200,38 +201,14 @@ export const uiMenus = {
       me.team = me.team ? 0 : 1; Lobby.slots.forEach((s, i) => { if (s.type === 'bot') s.team = Lobby.mode === 'tdm' ? (i % 2 === 0 ? 0 : 1) : s.team; });
       this.buildSlots(); Net.lobbySync(); SFX.ui();
     });
-    $('lbMode').addEventListener('change', e => { Lobby.mode = e.target.value; this.modeSel = e.target.value;
-      $$('#modeList .mode').forEach(o => o.classList.toggle('sel', o.dataset.m === e.target.value)); this.buildSlots(); });
-    $('lbMap').addEventListener('change', e => { Lobby.map = e.target.value; Save.data.map = Lobby.map; Save.flush(); $('inMap').value = Lobby.map; this.newArena(Lobby.seed || MAP.seed); Net.lobbySync(); });
-    $('inMap').addEventListener('change', e => { Lobby.map = e.target.value; Save.data.map = Lobby.map; Save.flush(); $('lbMap').value = Lobby.map; this.newArena(Lobby.seed || $('inSeed').value || MAP.seed); Net.lobbySync(); });
-    $('btnNewSeed').addEventListener('click', () => { Lobby.seed = ($('lbSeed').value || makeSeed()).toUpperCase(); this.newArena(Lobby.seed); Net.lobbySync(); });
-    $('lbSeed').addEventListener('input', e => { Lobby.seed = e.target.value.toUpperCase(); });
-    /* signalling */
-    $('btnHost').addEventListener('click', async () => {
-      if (!Net.isHost) Net.reset();
-      $('sigHelp').innerHTML = 'Token generated. Send it to your peer, then paste their ANSWER below and click <b style="color:var(--amber)">ACCEPT</b>. One token per guest.';
-      await Net.hostOffer(); SFX.levelup();
-    });
-    $('btnJoin').addEventListener('click', async () => {
-      Net.reset();
-      const t = $('sigRemote').value.trim();
-      if (!t){ UI.toast('PASTE A HOST TOKEN FIRST', 'r'); SFX.deny(); return; }
-      await Net.join(t);
-      $('sigHelp').innerHTML = 'Answer token generated — copy it back to the host.';
-      SFX.levelup();
-    });
-    $('btnAccept').addEventListener('click', async () => { await Net.hostAccept($('sigRemote').value.trim()); });
-    $('btnCopyLocal').addEventListener('click', () => {
-      const ta = $('sigLocal'); ta.select(); ta.setSelectionRange(0, 99999);
-      try { navigator.clipboard.writeText(ta.value); } catch (e){ document.execCommand && document.execCommand('copy'); }
-      UI.toast('TOKEN COPIED', 'g');
-    });
-    $('btnCopyLink').addEventListener('click', () => {
-      const tok = $('sigLocal').value.trim();
-      if (!tok){ UI.toast('HOST A ROOM FIRST', 'r'); SFX.deny(); return; }
-      const link = location.origin + location.pathname + '?join=' + encodeURIComponent(tok);
-      try { navigator.clipboard.writeText(link); } catch (e){}
-      UI.toast('JOIN LINK COPIED', 'g');
+    $('inMap').addEventListener('change', e => { Lobby.map = e.target.value; Save.data.map = Lobby.map; Save.flush(); this.newArena(Lobby.seed || $('inSeed').value || MAP.seed); Net.lobbySync(); });
+    /* invite: one link does it all now — trystero (public relays) finds the peer and the data
+       channels self-negotiate, so there's no answer to send back and nothing to paste anywhere */
+    $('btnCopyInvite').addEventListener('click', () => {
+      if (!Net.online || !Net.isHost) Net.hostRoom();
+      const link = location.origin + location.pathname + '?join=' + encodeURIComponent(Lobby.seed);
+      try { navigator.clipboard.writeText(link).catch(() => {}); } catch (e){}
+      UI.toast('INVITE LINK COPIED', 'g'); SFX.levelup();
     });
     /* pause + end */
     $('btnResume').addEventListener('click', () => UI.pause(false));
@@ -245,16 +222,16 @@ export const uiMenus = {
     addEventListener('pointerdown', () => { SFX.init(); SFX.resume(); }, { once: false });
   },
 
-  /* a host's "COPY JOIN LINK" lands here as ?join=<token>: drop straight into the lobby, pre-fill
-     and fire the join so the peer only has to send one answer token back, not paste the host's offer too */
+  /* a host's "COPY INVITE" link lands here as ?join=<seed>: drop into Play and connect straight away */
   autoJoinFromLink(){
-    const tok = new URLSearchParams(location.search).get('join');
-    if (!tok) return;
+    const seed = new URLSearchParams(location.search).get('join');
+    if (!seed) return;
     history.replaceState(null, '', location.pathname + location.hash);
-    $('btnLobby').click();
-    $('sigRemote').value = tok;
-    UI.toast('JOINING VIA LINK...', 'g');
-    $('btnJoin').click();
+    this.showSection('play');
+    UI.toast('JOINING...', 'g');
+    Net.joinRoomById(seed);
+    $('inSeed').value = Lobby.seed;
+    this.newArena(Lobby.seed);
   },
 
   lobbyBot(dir, quiet){
@@ -317,10 +294,10 @@ export const uiMenus = {
     SFX.init(); SFX.resume();
     Save.data.name = ($('inName').value || 'VIPER').toUpperCase().slice(0, 14);
     Save.flush();
-    const mode = this.modeSel || $('lbMode') && $('lbMode').value || 'ffa';
+    const mode = this.modeSel || 'ffa';
     const seed = forceSeed || (newSeed === false ? (Lobby.seed || $('inSeed').value || MAP.seed) : (($('inSeed').value || Lobby.seed || makeSeed()).toUpperCase()));
     Menu.clear();
-    const bots = Lobby.slots && Lobby.slots.length ? Lobby.slots.filter(s => s.type === 'bot').length : (+$('inBots').value || 0);
+    const bots = Lobby.slots && Lobby.slots.length ? Lobby.slots.filter(s => s.type === 'bot').length : 5;
     const team = Lobby.slots ? (Lobby.slots.find(s => s.me) || { team: 0 }).team : 0;
     Game.setup({
       mode: mode, map: Lobby.map, seed: seed, bots: bots, skill: Lobby.skill === undefined ? +$('inSkill').value : Lobby.skill,
@@ -330,15 +307,9 @@ export const uiMenus = {
     if (Net.online && Net.isHost) Net.broadcast({ k: 'start', seed: Game.seed, mode: mode, map: Game.mapId, limit: Game.killLimit, team: 1 });
   },
 
-  startFromLobby(){
-    Lobby.mode = $('lbMode').value;
-    this.modeSel = Lobby.mode;
-    this.deploy(false, Lobby.seed);
-  },
-
   menuScene(){
     Game.state = 'menu';
-    vis('boot', false); vis('lobby', false); vis('hud', false); vis('end', false); vis('pause', false); vis('touch', false);
+    vis('boot', false); vis('hud', false); vis('end', false); vis('pause', false); vis('touch', false);
     vis('menu', true);
     this.refreshStats(); this.buildWeapons(); this.previewDraw();
     Menu.start(Save.data.seed || MAP.seed);

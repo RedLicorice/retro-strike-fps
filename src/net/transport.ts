@@ -1,3 +1,4 @@
+import { joinRoom } from 'trystero';
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { Save } from '../core/save';
@@ -6,6 +7,11 @@ import { Lobby } from '../game/lobby';
 import { UI } from '../ui/index';
 
 /* ------------------------------ E2. WEBRTC P2P ------------------------------ */
+/* Trystero (public Nostr relays) replaces manual SDP copy-paste for connection setup only —
+   it finds peers and gets their RTCPeerConnections talking, nothing else. The actual game
+   traffic still never touches a server: once a peer is found we open our own 'g' (unreliable,
+   for snaps/shots) and 'r' (reliable, for lobby/chat) data channels directly on that connection,
+   pre-negotiated by matching channel ids so no extra signaling round-trip is needed for them. */
 export const netTransport = {
   /* optional hook fired by the host when a match starts (seed, mode) */
   onMatchStart: null as null | ((seed: string, mode: string) => void),
@@ -16,8 +22,6 @@ export const netTransport = {
   isHost: false,
 
   peers: [],
-
-  pending: [],
 
   myId: 'p0',
 
@@ -31,16 +35,15 @@ export const netTransport = {
 
   iceState: 'idle',
 
-  enc(o){ try { return btoa(JSON.stringify(o)); } catch (e){ return ''; } },
+  room: null as any,
 
-  dec(s){ try { return JSON.parse(atob(String(s).trim())); } catch (e){ return null; } },
-
-  cfg(){ return { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:global.stun.twilio.com:3478'] }] }; },
+  roomId: '',
 
   reset(){
-    for (const p of this.peers) try { p.pc.close(); } catch (e){}
-    for (const p of this.pending) try { p.pc.close(); } catch (e){}
-    this.peers = []; this.pending = []; this.online = false; this.isHost = false; this.role = 'solo';
+    for (const p of this.peers) try { p.pc && p.pc.close(); } catch (e){}
+    this.peers = [];
+    if (this.room) try { this.room.leave(); } catch (e){}
+    this.room = null; this.roomId = ''; this.online = false; this.isHost = false; this.role = 'solo';
     this.setStatus();
   },
 
@@ -51,54 +54,66 @@ export const netTransport = {
     $('ndIce').textContent = this.iceState;
   },
 
-  mkPC(){
-    const pc = new RTCPeerConnection(this.cfg());
-    pc.oniceconnectionstatechange = () => { this.iceState = pc.iceConnectionState; this.setStatus(); 
+  /* a short room code IS the arena seed — one less thing to keep in sync, and it reads naturally
+     ("join seed RLL39TQM") even typed out loud instead of pasted */
+  roomFor(seed){ return 'rs-' + String(seed || '').toUpperCase(); },
+
+  /* ---- shared: wire a freshly-connected trystero peer with our own g/r data channels ---- */
+  wirePeer(peerId){
+    const pcs = this.room.getPeers();
+    const pc = pcs[peerId]; if (!pc) return;
+    pc.oniceconnectionstatechange = () => { this.iceState = pc.iceConnectionState; this.setStatus();
       if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') UI.toast('PEER LINK DEGRADED', 'r'); };
-    return pc;
+    this.iceState = pc.iceConnectionState; /* trystero already has the connection going by the time onPeerJoin fires */
+    /* high ids so they can't collide with whatever channel id trystero auto-assigns itself on this same connection */
+    const g = pc.createDataChannel('g', { negotiated: true, id: 50, ordered: false, maxRetransmits: 0 });
+    const r = pc.createDataChannel('r', { negotiated: true, id: 51, ordered: true });
+    const peer: any = { pc, g, r, open: false, actorId: null, idx: this.peers.length, peerId };
+    this.wireDC(g, peer); this.wireDC(r, peer);
+    if (this.isHost) this.peers.push(peer); else this.peers = [peer];
+    return peer;
   },
 
-  waitIce(pc){
-    return new Promise<void>(res => {
-      if (pc.iceGatheringState === 'complete') return res();
-      const to = setTimeout(res, 2200);
-      pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === 'complete'){ clearTimeout(to); res(); } };
-    });
+  unwirePeer(peerId){
+    const i = this.peers.findIndex((p: any) => p.peerId === peerId);
+    if (i < 0) return;
+    const [peer] = this.peers.splice(i, 1);
+    try { peer.pc && peer.pc.close(); } catch (e){}
+    this.setStatus();
+    if (this.isHost) UI.toast('PEER DISCONNECTED', 'r');
   },
 
   wireDC(dc, peer){
-    dc.onopen = () => { peer.open = true; this.setStatus(); UI.toast('DATACHANNEL OPEN', 'g'); SFX.levelup();
-      if (this.isHost) this.welcome(peer); };
+    dc.onopen = () => {
+      peer.openN = (peer.openN || 0) + 1;
+      if (peer.openN < 2) return; /* wait for both g and r before announcing — matches old single-channel-open semantics */
+      peer.open = true; this.setStatus(); UI.toast(this.isHost ? 'PEER CONNECTED' : 'CONNECTED TO HOST', 'g'); SFX.levelup();
+      if (this.isHost) this.welcome(peer); else this.sendRaw(peer, { k: 'hello', name: Save.data.name, loadout: Save.data.loadout });
+    };
     dc.onclose = () => { peer.open = false; };
     dc.onmessage = ev => { this.st.in++; this.onMsg(peer, ev.data); };
   },
 
-  /* ---- HOST ---- */
-  async hostOffer(){
+  /* ---- HOST: open a room at the current arena seed and wait for peers ---- */
+  hostRoom(){
     this.isHost = true; this.role = 'host'; this.online = true;
-    const pc = this.mkPC();
-    const g = pc.createDataChannel('g', { ordered: false, maxRetransmits: 0 });
-    const r = pc.createDataChannel('r', { ordered: true });
-    const peer = { pc: pc, g: g, r: r, open: false, actorId: null, idx: this.pending.length + this.peers.length };
-    this.wireDC(g, peer); this.wireDC(r, peer);
-    g.onopen = () => { peer.open = true; this.pending = this.pending.filter(p => p !== peer); this.peers.push(peer); this.setStatus(); UI.toast('PEER CONNECTED', 'g'); this.welcome(peer); };
-    const off = await pc.createOffer(); await pc.setLocalDescription(off);
-    await this.waitIce(pc);
-    this.pending.push(peer);
-    const tok = this.enc({ t: 'offer', s: pc.localDescription.sdp });
-    $('sigLocal').value = tok; this.setStatus('AWAITING PEER ANSWER');
-    return tok;
+    this.roomId = this.roomFor(Lobby.seed);
+    this.room = joinRoom({ appId: 'retrostrike-fps' }, this.roomId);
+    this.room.onPeerJoin = (peerId: string) => this.wirePeer(peerId);
+    this.room.onPeerLeave = (peerId: string) => this.unwirePeer(peerId);
+    this.setStatus('ROOM OPEN — AWAITING PEERS');
+    return this.roomId;
   },
 
-  async hostAccept(ansTok){
-    const m = this.dec(ansTok);
-    if (!m || m.t !== 'answer'){ UI.toast('INVALID ANSWER TOKEN', 'r'); SFX.deny(); return; }
-    const peer = this.pending.find(p => !p.answered);
-    if (!peer){ UI.toast('NO PENDING OFFER — CLICK HOST ROOM FIRST', 'r'); return; }
-    peer.answered = true;
-    await peer.pc.setRemoteDescription({ type: 'answer', sdp: m.s });
-    this.setStatus('LINK ESTABLISHING');
-    UI.toast('ANSWER ACCEPTED', 'g');
+  /* ---- CLIENT: join the host's room by seed/room code ---- */
+  joinRoomById(seed){
+    this.isHost = false; this.role = 'client'; this.online = true;
+    Lobby.seed = String(seed).toUpperCase();
+    this.roomId = this.roomFor(Lobby.seed);
+    this.room = joinRoom({ appId: 'retrostrike-fps' }, this.roomId);
+    this.room.onPeerJoin = (peerId: string) => this.wirePeer(peerId);
+    this.room.onPeerLeave = (peerId: string) => this.unwirePeer(peerId);
+    this.setStatus('LOOKING FOR HOST...');
   },
 
   welcome(peer){
@@ -110,29 +125,6 @@ export const netTransport = {
     } else {                                          /* sit in the lobby until the host deploys */
       this.send(peer, { k: 'lobby', slots: L.slots.map(s => ({ n: s.name, t: s.type, tm: s.team, lv: s.lv })), seed: L.seed, mode: L.mode, map: L.map, limit: L.limit, id: id });
     }
-  },
-
-  /* ---- CLIENT ---- */
-  async join(offerTok){
-    const m = this.dec(offerTok);
-    if (!m || m.t !== 'offer'){ UI.toast('INVALID OFFER TOKEN', 'r'); SFX.deny(); return null; }
-    this.isHost = false; this.role = 'client'; this.online = true;
-    const pc = this.mkPC();
-    const peer = { pc: pc, g: null, r: null, open: false, idx: 0 };
-    pc.ondatachannel = ev => {
-      const dc = ev.channel;
-      if (dc.label === 'g') peer.g = dc; else peer.r = dc;
-      this.wireDC(dc, peer);
-      if (dc.label === 'g') dc.onopen = () => { peer.open = true; this.peers = [peer]; this.setStatus('CONNECTED TO HOST'); };
-    };
-    await pc.setRemoteDescription({ type: 'offer', sdp: m.s });
-    const ans = await pc.createAnswer(); await pc.setLocalDescription(ans);
-    await this.waitIce(pc);
-    const tok = this.enc({ t: 'answer', s: pc.localDescription.sdp });
-    $('sigLocal').value = tok;
-    this.setStatus('SEND THIS ANSWER BACK TO HOST');
-    this.sendRaw(peer, { k: 'hello', name: Save.data.name, loadout: Save.data.loadout });
-    return tok;
   },
 
   send(peer, obj){

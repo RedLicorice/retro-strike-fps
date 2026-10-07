@@ -3,7 +3,7 @@ import { groupHits } from '../combat/ballistics';
 import { Actor } from '../actors/actor';
 import { SFX } from '../audio/sfx';
 import { Combat } from '../combat/index';
-import { $, now, vis } from '../core/dom';
+import { $, now } from '../core/dom';
 import { V3, clamp, damp, lerp, v3len } from '../core/math';
 import { Save } from '../core/save';
 import { WBY, WEAPONS } from '../data/weapons';
@@ -106,10 +106,9 @@ export const netProtocol = {
         Lobby.slots = m.slots.map(s => ({ type: s.t, name: s.n, team: s.tm, lv: s.lv }));
         Lobby.seed = m.seed; Lobby.mode = m.mode; Lobby.limit = m.limit || Lobby.limit; Lobby.map = m.map || 'arena';
         if (Game.state !== 'play'){
-          vis('menu', false); vis('lobby', true);
-          const lm = $('lbMap') as HTMLSelectElement; if (lm) lm.value = Lobby.map;
+          const im = $('inMap') as HTMLSelectElement; if (im) im.value = Lobby.map;
           if (MAP.seed !== Lobby.seed || MAP.mapId !== Lobby.map) UI.newArena(Lobby.seed);
-          UI.buildSlots(); UI.previewDraw();
+          UI.buildSlots(); UI.previewDraw(); UI.showSection('play');
         }
         break;
       case 'start': Lobby.seed = m.seed; Lobby.mode = m.mode; Lobby.limit = m.limit; Lobby.map = m.map || 'arena';

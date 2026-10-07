@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "babylonjs": "8.56.2",
-    "babylonjs-loaders": "8.56.2"
+    "babylonjs-loaders": "8.56.2",
+    "trystero": "^0.26.0"
   },
   "devDependencies": {
     "typescript": "^5.9.0",

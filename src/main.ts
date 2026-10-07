@@ -30,7 +30,7 @@ const Boot = {
     ['FORGING WEAPON GEOMETRY...', () => { FX.init(); }],
     ['READING HEIGHTMAPS...', () => Heightmaps.load()],
     ['LOADING OPERATORS & ARMS...', () => Models.load((d, n) => { $('bootStat').textContent = 'LOADING OPERATORS & ARMS... ' + d + '/' + n; })],
-    ['GENERATING ARENA SEED...', () => { Input.init(); UI.init(); UI.boot(); Menu.start(makeSeed()); }],
+    ['GENERATING ARENA SEED...', () => { Input.init(); UI.init(); UI.boot(); Menu.start(makeSeed()); UI.initLobbyState(); }],
     ['LINKING P2P TRANSPORT...', () => { applyQuality(Save.data.settings.quality); Net.setStatus(); }],
     ['READY', () => { }]
   ],
