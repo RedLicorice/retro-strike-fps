@@ -136,7 +136,13 @@ export const netProtocol = {
         if (Game.state === 'play') break; /* the host resends this once as insurance against a dropped packet; ignore the repeat */
         Lobby.seed = m.seed; Lobby.mode = m.mode; Lobby.limit = m.limit; Lobby.map = m.map || 'arena';
         Game.setup({ mode: m.mode, map: Lobby.map, seed: m.seed, bots: 0, limit: m.limit, loadout: Save.data.loadout, name: Save.data.name, team: m.team });
-        Game.isAuthority = false; break;
+        Game.isAuthority = false;
+        /* setup() always names the local actor 'p0'; this.myId already holds the id the host
+           actually assigned us (from the earlier 'lobby' message) — without this fixup our own
+           actor and network identity disagree, and anything keyed off Player.id (kill/death
+           feedback, etc.) silently fails to recognize us */
+        Game.local.id = this.myId; Player.id = this.myId;
+        break;
       /* ---- client-side presentation ---- */
       case 'snap': this.applySnap(m); break;
       case 'hit': {

@@ -14,6 +14,7 @@ import { Save } from '../core/save';
 import { BOT_NAMES } from '../data/bots';
 import { PRIMARY_IDS } from '../data/weapons';
 import { FX } from '../fx/fx';
+import { Lobby } from './lobby';
 import { Net } from '../net/index';
 import { Player } from '../player/player';
 import { GFX } from '../render/postfx';
@@ -83,6 +84,21 @@ export const gameMatch = {
       this.actors.push(b);
       this.spawnActor(b);
     }
+
+    /* real connected peers: a non-bot "remote human" actor each, driven by their own 'in'
+       network updates (see the "remote humans are driven by the network" branch in update(),
+       and the 'in'/'shot' handlers in protocol.ts). Without this the host never creates an
+       actor for a peer at all, so Game.actors.find(x => x.id === peer.actorId) always misses —
+       they're invisible on the host's screen and their shots are silently dropped. Clients
+       don't need this: they learn about every other actor (bots, host, peers) generically
+       through snapshot sync (applySnap's "unknown actor" branch). */
+    if (Net.isHost) for (const s of Lobby.slots){
+      if (s.type !== 'player' || s.me || !s.id) continue;
+      const p = new Actor(s.id, s.name, s.team, false, 'sol');
+      this.actors.push(p);
+      this.spawnActor(p);
+    }
+
     if (this.mode !== 'tdm') this.ff = true; else this.ff = false;
     this.isAuthority = true;
     Net.onMatchStart && Net.onMatchStart(this.seed, this.mode);
