@@ -3,6 +3,19 @@
    every peer ships the same files, so a name is enough to reproduce the terrain. */
 export interface HeightImage { w: number; h: number; px: Float32Array }
 
+/* Loads via onload/onerror (not img.decode(), which can stall forever on some browsers even
+   after the image has fully loaded) and bounds the wait so one bad/slow file can't hang boot. */
+function loadImage(src: string, timeoutMs = 8000): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const timer = setTimeout(() => reject(new Error('timed out loading ' + src)), timeoutMs);
+    img.onload = () => { clearTimeout(timer); resolve(img); };
+    img.onerror = (e) => { clearTimeout(timer); reject(e); };
+    img.src = src;
+    if (img.complete && img.naturalWidth > 0){ clearTimeout(timer); resolve(img); }
+  });
+}
+
 export const Heightmaps = {
   list: [] as string[],
   data: {} as Record<string, HeightImage>,
@@ -12,8 +25,7 @@ export const Heightmaps = {
     const names: string[] = await fetch(base + 'index.json').then(r => r.ok ? r.json() : []).catch(() => []);
     await Promise.all(names.map(async n => {
       try {
-        const img = new Image(); img.src = base + n + '.png';
-        await img.decode();
+        const img = await loadImage(base + n + '.png');
         const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
         const x = cv.getContext('2d'); x.drawImage(img, 0, 0);
         const d = x.getImageData(0, 0, img.width, img.height).data, px = new Float32Array(img.width * img.height);
