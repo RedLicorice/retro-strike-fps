@@ -9,7 +9,7 @@ export const Save = {
   defaults(){
     return {
       name: 'VIPER',
-      settings: { sens: 1, fov: 85, vol: .7, quality: 'med', invY: false, shake: true, touch: null, fps: true, view3p: false, fpArms: false },
+      settings: { sens: 1, fov: 85, vol: .7, quality: 'med', invY: false, shake: true, touch: null, fps: true, view3p: false, fpArms: false, autoAds: true },
       loadout: { ...DEFAULT_LOADOUT },
       character: DEFAULT_CHARACTER,
       stats: { kills: 0, deaths: 0, hs: 0, dmg: 0, shots: 0, hits: 0, score: 0, best: 0, matches: 0, wins: 0, time: 0, wave: 0 },

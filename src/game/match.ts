@@ -267,6 +267,10 @@ export const gameMatch = {
   toMenu(){
     this.state = 'menu'; this.clear(); MAP.dispose();
     vis('hud', false); vis('end', false); vis('score', false); vis('pause', false); vis('touch', false);
+    /* release whatever enterGame() grabbed for a touch match — harmless no-ops if neither was ever taken */
+    const o: any = (screen as any).orientation;
+    if (o && o.unlock) try { o.unlock(); } catch (e){}
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
     UI.menuScene();
   }
 };

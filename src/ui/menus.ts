@@ -148,7 +148,7 @@ export const uiMenus = {
     const cb = (id, key, fn?) => { const el = $(id); if (!el) return; el.checked = !!S[key];
       el.addEventListener('change', () => { S[key] = el.checked; if (fn) fn(el.checked); Save.flush();
         const mirror = $(id + '2'); if (mirror) mirror.checked = el.checked; }); };
-    cb('setInvY', 'invY'); cb('setShake', 'shake'); cb('setView3p', 'view3p'); cb('setFpArms', 'fpArms');
+    cb('setInvY', 'invY'); cb('setShake', 'shake'); cb('setView3p', 'view3p'); cb('setFpArms', 'fpArms'); cb('setAutoAds', 'autoAds');
     cb('setTouch', 'touch', v => { $('touch').classList.toggle('hidden', !(v && Game.state === 'play')); });
     cb('setShowFps', 'fps', v => { $('fpsC').style.display = v ? 'block' : 'none'; });
     /* mirror values */
@@ -162,7 +162,7 @@ export const uiMenus = {
     sel2('setQual2', 'setQual', 'quality', v => applyQuality(v));
     const cb2 = (id2, mainId, key, fn?) => { const el = $(id2); if (!el) return; el.checked = !!S[key];
       el.addEventListener('change', () => { S[key] = el.checked; if (fn) fn(el.checked); Save.flush(); $(mainId).checked = el.checked; }); };
-    cb2('setInvY2', 'setInvY', 'invY'); cb2('setShake2', 'setShake', 'shake'); cb2('setView3p2', 'setView3p', 'view3p'); cb2('setFpArms2', 'setFpArms', 'fpArms');
+    cb2('setInvY2', 'setInvY', 'invY'); cb2('setShake2', 'setShake', 'shake'); cb2('setView3p2', 'setView3p', 'view3p'); cb2('setFpArms2', 'setFpArms', 'fpArms'); cb2('setAutoAds2', 'setAutoAds', 'autoAds');
     cb2('setTouch2', 'setTouch', 'touch', v => { $('touch').classList.toggle('hidden', !(v && Game.state === 'play')); });
     cb2('setShowFps2', 'setShowFps', 'fps', v => { $('fpsC').style.display = v ? 'block' : 'none'; });
     /* pause menu mirrors */

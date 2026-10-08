@@ -32,14 +32,24 @@ export const uiScreens = {
     vis('boot', false); vis('menu', false); vis('lobby', false);
     vis('end', false); vis('pause', false); vis('score', false);
     vis('hud', true);
-    vis('touch', !!(ctx.IS_TOUCH || (Save.data.settings && Save.data.settings.touch)));
+    const touchOn = !!(ctx.IS_TOUCH || (Save.data.settings && Save.data.settings.touch));
+    vis('touch', touchOn);
     if ($('fpsC')) $('fpsC').style.display = (Save.data.settings && Save.data.settings.fps) ? 'block' : 'none';
     if ($('feed')) $('feed').innerHTML = '';
     if ($('hitDir')) $('hitDir').innerHTML = '';
     this._thrKey = null; this._rc = -1;
     Input.enabled = true;
-    if (!ctx.IS_TOUCH && !(Save.data.settings && Save.data.settings.touch)){
+    if (!touchOn){
       setTimeout(() => { try { ctx.canvas.requestPointerLock && ctx.canvas.requestPointerLock(); } catch (e){} }, 80);
+    } else if (!document.fullscreenElement){
+      /* orientation lock only sticks once the page is actually fullscreen on most mobile
+         browsers, so these two go together; both are best-effort (support varies, and a user
+         can simply decline fullscreen) — a touch player who says no just keeps playing windowed */
+      const fs = document.documentElement.requestFullscreen ? document.documentElement.requestFullscreen() : Promise.reject();
+      Promise.resolve(fs).then(() => {
+        const o: any = (screen as any).orientation;
+        if (o && o.lock) o.lock('landscape').catch(() => {});
+      }).catch(() => {});
     }
     try { SFX.uiBig(); } catch (e){}
   },

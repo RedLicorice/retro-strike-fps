@@ -329,7 +329,9 @@ export const Wep = {
       if (this.reloadT <= 0){ this.reloadStage = 0; UI.reloadBar(-1); }
     }
     /* trigger */
-    const wantAim = (Input.mouse.b[2] || Input.touch.aim) && !d.melee && d.slot !== 2 && Player.stance !== 2 && Player.sliding <= 0;
+    const touchOn = ctx.IS_TOUCH || Save.data.settings.touch;
+    const autoAds = touchOn && Save.data.settings.autoAds !== false && Input.touch.fire;
+    const wantAim = (Input.mouse.b[2] || Input.touch.aim || autoAds) && !d.melee && d.slot !== 2 && Player.stance !== 2 && Player.sliding <= 0;
     this.aiming = wantAim && this.reloadT <= 0 && this.swapT <= 0;
     this.aimT = damp(this.aimT, this.aiming ? 1 : 0, 1 / Math.max(.035, (d.adsT || .2) * ADS_TIME_SCALE), dt);
     const hold = Input.mouse.b[0] || Input.touch.fire;
