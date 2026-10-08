@@ -193,23 +193,14 @@ export const uiMenus = {
        On narrow/landscape-phone screens the same click also drills in full-screen; '< MENU' backs out to the tile list. */
     $$('.navTile[data-sec]').forEach(t => t.addEventListener('click', () => { this.showSection(t.dataset.sec); SFX.uiBig(); }));
     $$('.secBack').forEach(b => b.addEventListener('click', () => { $('menuMain').classList.remove('drilled'); }));
-    $('btnAddBot').addEventListener('click', () => this.lobbyBot(1));
-    $('btnRemBot').addEventListener('click', () => this.lobbyBot(-1));
-    $('btnFill').addEventListener('click', () => { while (Lobby.count() < 8) this.lobbyBot(1, true); this.buildSlots(); Net.lobbySync(); });
+    $('btnAddBot').addEventListener('click', () => this.lobbyBot());
+    $('btnFill').addEventListener('click', () => { while (Lobby.count() < 8) this.lobbyBot(true); this.buildSlots(); Net.lobbySync(); });
     $('btnMyTeam').addEventListener('click', () => {
       const me = Lobby.slots.find(s => s.me); if (!me) return;
       me.team = me.team ? 0 : 1; Lobby.slots.forEach((s, i) => { if (s.type === 'bot') s.team = Lobby.mode === 'tdm' ? (i % 2 === 0 ? 0 : 1) : s.team; });
       this.buildSlots(); Net.lobbySync(); SFX.ui();
     });
     $('inMap').addEventListener('change', e => { Lobby.map = e.target.value; Save.data.map = Lobby.map; Save.flush(); this.newArena(Lobby.seed || $('inSeed').value || MAP.seed); Net.lobbySync(); });
-    /* invite: one link does it all now — trystero (public relays) finds the peer and the data
-       channels self-negotiate, so there's no answer to send back and nothing to paste anywhere */
-    $('btnCopyInvite').addEventListener('click', () => {
-      if (!Net.online || !Net.isHost) Net.hostRoom();
-      const link = location.origin + location.pathname + '?join=' + encodeURIComponent(Lobby.seed);
-      try { navigator.clipboard.writeText(link).catch(() => {}); } catch (e){}
-      UI.toast('INVITE LINK COPIED', 'g'); SFX.levelup();
-    });
     /* pause + end */
     $('btnResume').addEventListener('click', () => UI.pause(false));
     $('btnQuit').addEventListener('click', () => { Game.toMenu(); UI.pause(false); });
@@ -224,43 +215,72 @@ export const uiMenus = {
 
   /* a host's "COPY INVITE" link lands here as ?join=<seed>: drop into Play and connect straight away */
   autoJoinFromLink(){
-    const seed = new URLSearchParams(location.search).get('join');
+    const params = new URLSearchParams(location.search);
+    const seed = params.get('join');
     if (!seed) return;
+    const slot = params.get('slot');
     history.replaceState(null, '', location.pathname + location.hash);
     this.showSection('play');
     UI.toast('JOINING...', 'g');
+    Net.wantSlot = slot !== null && slot !== '' ? +slot : null;
     Net.joinRoomById(seed);
     $('inSeed').value = Lobby.seed;
     this.newArena(Lobby.seed);
   },
 
-  lobbyBot(dir, quiet){
-    if (dir > 0){
-      const i = Lobby.slots.findIndex(s => s.type === 'empty');
-      if (i < 0){ if (!quiet){ UI.toast('LOBBY FULL', 'r'); SFX.deny(); } return; }
-      const used = Lobby.slots.filter(s => s.type === 'bot').length;
-      Lobby.slots[i] = { type: 'bot', name: BOT_NAMES[used % BOT_NAMES.length], team: Lobby.mode === 'tdm' ? (i % 2 === 0 ? 0 : 1) : used % 2, lv: 1 + rndi(12) };
-    } else {
-      for (let i = Lobby.slots.length - 1; i >= 0; i--) if (Lobby.slots[i].type === 'bot'){ Lobby.slots[i] = { type: 'empty', name: '— OPEN SLOT —', team: 0 }; break; }
-    }
+  lobbyBot(quiet){
+    const i = Lobby.slots.findIndex(s => s.type === 'empty');
+    if (i < 0){ if (!quiet){ UI.toast('LOBBY FULL', 'r'); SFX.deny(); } return; }
+    const used = Lobby.slots.filter(s => s.type === 'bot').length;
+    Lobby.slots[i] = { type: 'bot', name: BOT_NAMES[used % BOT_NAMES.length], team: Lobby.mode === 'tdm' ? (i % 2 === 0 ? 0 : 1) : used % 2, lv: 1 + rndi(12) };
     this.buildSlots(); if (!quiet) SFX.ui();
+  },
+
+  /* bots clear locally; a connected player is actually kicked (Net.kick frees their slot once they disconnect) */
+  removeSlot(i){
+    const s = Lobby.slots[i]; if (!s || s.type === 'empty' || s.me) return;
+    if (s.type === 'player'){
+      const peer = Net.peers.find(p => p.actorId === s.id);
+      if (peer){ Net.kick(peer); return; }
+    }
+    Lobby.slots[i] = { type: 'empty', name: '— OPEN SLOT —', team: 0 };
+    this.buildSlots(); Net.lobbySync(); SFX.ui();
+  },
+
+  /* a link for one specific open slot: whoever opens it is seated there (and keeps that slot's
+     pre-set team), not just wherever happens to be free first */
+  copySlotLink(i){
+    if (!Net.online || !Net.isHost) Net.hostRoom();
+    const link = location.origin + location.pathname + '?join=' + encodeURIComponent(Lobby.seed) + '&slot=' + i;
+    try { navigator.clipboard.writeText(link).catch(() => {}); } catch (e){}
+    UI.toast('INVITE LINK COPIED', 'g'); SFX.levelup();
   },
 
   buildSlots(){
     const el = $('slotList'); if (!el) return;
-    el.innerHTML = Lobby.slots.map((s, i) =>
-      '<div class="slot ' + (s.type === 'empty' ? 'empty' : 't' + (s.team | 0)) + '">' +
-      '<div class="mono" style="color:var(--mut)">' + String(i + 1).padStart(2, '0') + '</div>' +
-      '<div><div class="n">' + s.name + (s.me ? ' <span style="color:var(--amber)">(YOU' + (Net.isHost ? ' • HOST' : '') + ')</span>' : '') + '</div>' +
-      '<div class="mono" style="font-size:10px;color:var(--mut)">' + (s.type === 'bot' ? 'AI • SKILL ' + ['RECRUIT', 'VETERAN', 'ELITE'][Lobby.skill] : s.type === 'player' ? 'HUMAN' : 'AWAITING PEER') + '</div></div>' +
-      '<div class="lv">' + (s.type === 'empty' ? '' : 'LVL ' + (s.lv || 1)) + '</div>' +
-      '<div class="tg" data-i="' + i + '">' + (s.type === 'empty' ? '' : (Lobby.mode === 'tdm' ? (s.team === 0 ? 'RED' : 'BLUE') : 'SOLO')) + '</div></div>').join('');
+    const canManage = !Net.online || Net.isHost;
+    el.innerHTML = Lobby.slots.map((s, i) => {
+      const icon = s.type === 'bot' ? '<div class="ico bot" title="Bot">&#9635;</div>'
+        : s.type === 'player' ? '<div class="ico human" title="Human">&#9679;</div>' : '<div class="ico"></div>';
+      const action = s.type === 'empty'
+        ? (canManage ? '<button class="cpl" data-i="' + i + '" title="Copy an invite link for this slot">LINK</button>' : '')
+        : (canManage && !s.me ? '<button class="x" data-i="' + i + '" title="Remove">&times;</button>' : '');
+      return '<div class="slot ' + (s.type === 'empty' ? 'empty' : 't' + (s.team | 0)) + '">' +
+        '<div class="mono" style="color:var(--mut)">' + String(i + 1).padStart(2, '0') + '</div>' + icon +
+        '<div><div class="n">' + s.name + (s.me ? ' <span style="color:var(--amber)">(YOU' + (Net.isHost ? ' • HOST' : '') + ')</span>' : '') + '</div>' +
+        '<div class="mono" style="font-size:10px;color:var(--mut)">' + (s.type === 'bot' ? 'AI • SKILL ' + ['RECRUIT', 'VETERAN', 'ELITE'][Lobby.skill] : s.type === 'player' ? 'HUMAN' : 'AWAITING PEER') + '</div></div>' +
+        '<div class="lv">' + (s.type === 'empty' ? '' : 'LVL ' + (s.lv || 1)) + '</div>' +
+        '<div class="tg" data-i="' + i + '">' + (s.type === 'empty' ? '' : (Lobby.mode === 'tdm' ? (s.team === 0 ? 'RED' : 'BLUE') : 'SOLO')) + '</div>' +
+        action + '</div>';
+    }).join('');
     $('slotCount').textContent = Lobby.count() + ' / 8';
     $$('#slotList .tg').forEach(t => t.addEventListener('click', () => {
       const s = Lobby.slots[+t.dataset.i]; if (!s || s.type === 'empty' || Lobby.mode !== 'tdm') return;
       if (!s.me && !Net.isHost) return;
       s.team = s.team ? 0 : 1; this.buildSlots(); Net.lobbySync(); SFX.ui();
     }));
+    $$('#slotList .x').forEach(b => b.addEventListener('click', () => this.removeSlot(+b.dataset.i)));
+    $$('#slotList .cpl').forEach(b => b.addEventListener('click', () => this.copySlotLink(+b.dataset.i)));
   },
 
   previewDraw(){

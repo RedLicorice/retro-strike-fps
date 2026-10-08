@@ -39,11 +39,16 @@ export const netTransport = {
 
   roomId: '',
 
+  /* set just before joinRoomById() when a peer followed a per-slot invite link, so the handshake
+     below can ask the host for that exact slot instead of "whichever is free" */
+  wantSlot: null as number | null,
+
   reset(){
     for (const p of this.peers) try { p.pc && p.pc.close(); } catch (e){}
     this.peers = [];
-    if (this.room) try { this.room.leave(); } catch (e){}
-    this.room = null; this.roomId = ''; this.online = false; this.isHost = false; this.role = 'solo';
+    const r = this.room;
+    this.room = null; this.roomId = ''; this.online = false; this.isHost = false; this.role = 'solo'; this.wantSlot = null;
+    if (r) try { Promise.resolve(r.leave()).catch(() => {}); } catch (e){}
     this.setStatus();
   },
 
@@ -79,8 +84,19 @@ export const netTransport = {
     if (i < 0) return;
     const [peer] = this.peers.splice(i, 1);
     try { peer.pc && peer.pc.close(); } catch (e){}
+    if (this.isHost && peer.actorId){
+      const slot = Lobby.slots.findIndex(s => s.id === peer.actorId);
+      if (slot >= 0){ Lobby.slots[slot] = { type: 'empty', name: '— OPEN SLOT —', team: 0 }; UI.buildSlots(); this.lobbySync(); }
+    }
     this.setStatus();
     if (this.isHost) UI.toast('PEER DISCONNECTED', 'r');
+  },
+
+  /* host only: tell a peer to leave, then drop them locally — trystero has no built-in kick,
+     so the peer's own client disconnects itself on receiving this */
+  kick(peer){
+    this.sendRaw(peer, { k: 'kicked' });
+    this.unwirePeer(peer.peerId);
   },
 
   wireDC(dc, peer){
@@ -88,7 +104,7 @@ export const netTransport = {
       peer.openN = (peer.openN || 0) + 1;
       if (peer.openN < 2) return; /* wait for both g and r before announcing — matches old single-channel-open semantics */
       peer.open = true; this.setStatus(); UI.toast(this.isHost ? 'PEER CONNECTED' : 'CONNECTED TO HOST', 'g'); SFX.levelup();
-      if (this.isHost) this.welcome(peer); else this.sendRaw(peer, { k: 'hello', name: Save.data.name, loadout: Save.data.loadout });
+      if (this.isHost) this.welcome(peer); else this.sendRaw(peer, { k: 'hello', name: Save.data.name, loadout: Save.data.loadout, slot: this.wantSlot });
     };
     dc.onclose = () => { peer.open = false; };
     dc.onmessage = ev => { this.st.in++; this.onMsg(peer, ev.data); };

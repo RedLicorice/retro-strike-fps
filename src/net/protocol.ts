@@ -4,8 +4,9 @@ import { Actor } from '../actors/actor';
 import { SFX } from '../audio/sfx';
 import { Combat } from '../combat/index';
 import { $, now } from '../core/dom';
-import { V3, clamp, damp, lerp, v3len } from '../core/math';
+import { V3, clamp, damp, lerp, rndi, v3len } from '../core/math';
 import { Save } from '../core/save';
+import { BOT_NAMES } from '../data/bots';
 import { WBY, WEAPONS } from '../data/weapons';
 import { FX } from '../fx/fx';
 import { Game } from '../game/index';
@@ -13,6 +14,15 @@ import { Lobby } from '../game/lobby';
 import { Player } from '../player/player';
 import { UI } from '../ui/index';
 import { MAP } from '../world/map/index';
+
+/* host-side: every occupied slot name must be unique — a joiner whose chosen callsign collides
+   (with the host, a bot, or another peer) gets rolled a fresh one from the bot name pool instead */
+function uniqueName(want: string){
+  const used = new Set(Lobby.slots.filter(s => s.type !== 'empty').map(s => String(s.name || '').toUpperCase()));
+  if (want && !used.has(want.toUpperCase())) return want;
+  const pool = BOT_NAMES.filter(n => !used.has(n));
+  return pool.length ? pool[rndi(pool.length)] : (want || 'GUEST') + rndi(90);
+}
 
 export const netProtocol = {
   /* ---- host authoritative hooks (no-ops offline) ---- */
@@ -42,10 +52,21 @@ export const netProtocol = {
       case 'hello':
         peer.name = m.name; peer.loadout = m.loadout;
         if (this.isHost){
-          const slot = Lobby.slots.findIndex(s => s.type === 'empty');
-          if (slot >= 0){ Lobby.slots[slot] = { type: 'player', name: m.name || 'GUEST', team: Lobby.mode === 'tdm' ? 1 : slot % 2, id: peer.actorId, lv: 1 }; }
+          /* a per-slot invite link asks for that exact slot; fall back to first-empty if it's since filled */
+          const wanted = typeof m.slot === 'number' ? m.slot : -1;
+          const slot = (wanted >= 0 && Lobby.slots[wanted] && Lobby.slots[wanted].type === 'empty')
+            ? wanted : Lobby.slots.findIndex(s => s.type === 'empty');
+          if (slot >= 0){
+            const team = Lobby.slots[slot].team;
+            Lobby.slots[slot] = { type: 'player', name: uniqueName(m.name), team: team, id: peer.actorId, lv: 1 };
+          }
           UI.buildSlots(); this.lobbySync();
         }
+        break;
+      case 'kicked':
+        UI.toast('REMOVED FROM LOBBY BY HOST', 'r');
+        this.reset();
+        UI.initLobbyState();
         break;
       case 'welcome':
         this.myId = m.id; Lobby.seed = m.seed; Lobby.mode = m.mode; Lobby.limit = m.limit; Lobby.map = m.map || 'arena';
