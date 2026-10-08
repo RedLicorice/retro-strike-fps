@@ -324,7 +324,17 @@ export const uiMenus = {
       limit: +($('inLimit').value || Lobby.limit || 25), loadout: Save.data.loadout, name: Save.data.name, team: team
     });
     Lobby.seed = Game.seed;
-    if (Net.online && Net.isHost) Net.broadcast({ k: 'start', seed: Game.seed, mode: mode, map: Game.mapId, limit: Game.killLimit, team: 1 });
+    if (Net.online && Net.isHost){
+      /* each peer gets their own slot's team (not a shared hardcoded one), and 'start' is unacknowledged
+         over an unreliable real P2P path — resend once shortly after as cheap insurance against one
+         dropped send; the client ignores a second 'start' once it's already deployed */
+      for (const peer of Net.peers){
+        const slot = Lobby.slots.find(s => s.id === peer.actorId);
+        const msg = { k: 'start', seed: Game.seed, mode: mode, map: Game.mapId, limit: Game.killLimit, team: slot ? slot.team : 0 };
+        Net.send(peer, msg);
+        setTimeout(() => Net.send(peer, msg), 350);
+      }
+    }
   },
 
   menuScene(){

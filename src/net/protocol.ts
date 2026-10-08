@@ -132,7 +132,9 @@ export const netProtocol = {
           UI.buildSlots(); UI.previewDraw(); UI.showSection('play');
         }
         break;
-      case 'start': Lobby.seed = m.seed; Lobby.mode = m.mode; Lobby.limit = m.limit; Lobby.map = m.map || 'arena';
+      case 'start':
+        if (Game.state === 'play') break; /* the host resends this once as insurance against a dropped packet; ignore the repeat */
+        Lobby.seed = m.seed; Lobby.mode = m.mode; Lobby.limit = m.limit; Lobby.map = m.map || 'arena';
         Game.setup({ mode: m.mode, map: Lobby.map, seed: m.seed, bots: 0, limit: m.limit, loadout: Save.data.loadout, name: Save.data.name, team: m.team });
         Game.isAuthority = false; break;
       /* ---- client-side presentation ---- */
