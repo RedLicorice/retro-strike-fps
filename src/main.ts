@@ -14,6 +14,7 @@ import { Player } from './player/player';
 import { MAT } from './render/materials';
 import { Models } from './assets/models';
 import { installTelemetry, track } from './dev/telemetry';
+import { createEngine } from './render/engine';
 import { applyQuality } from './render/quality';
 import { UI } from './ui/index';
 import { Lobby } from './game/lobby';
@@ -98,13 +99,22 @@ function loop(){
   ctx.scene.render();
 }
 
-function boot(){
+async function boot(){
   ctx.canvas = $('c');
   Save.load();
   ctx.IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
   if (ctx.IS_TOUCH && Save.data.settings.touch === null) Save.data.settings.touch = true;
   if (ctx.IS_TOUCH && Save.data.settings.quality === 'med') Save.data.settings.quality = 'low';
-  ctx.engine = new BABYLON.Engine(ctx.canvas, true, { antialias: false, stencil: true, preserveDrawingBuffer: false, powerPreference: 'high-performance', adaptToDeviceRatio: false }, true);
+  /* Picking WebGPU over WebGL needs an adapter+device handshake, so this is the one awaited
+     step in boot. Nothing is hidden or shown around it: #boot is static markup in index.html
+     that the browser has already painted (its initial caption is literally
+     "INITIALIZING RENDER DEVICE..."), so the await just holds the screen the user is looking
+     at. Everything below — and all of Boot.run() — still runs in one synchronous pass once
+     the device exists, so no step can observe a null engine. */
+  $('bootBar').style.width = '4%';
+  const dev = await createEngine(ctx.canvas);
+  ctx.engine = dev.engine;
+  ctx.canvas = dev.canvas;      /* the WebGL fallback may have had to swap in a fresh canvas */
   ctx.scene = new BABYLON.Scene(ctx.engine);
   ctx.scene.clearColor = new BABYLON.Color4(.055, .062, .05, 1);
   ctx.scene.autoClearDepthAndStencil = true;
@@ -117,7 +127,7 @@ function boot(){
   ctx.scene.blockMaterialDirtyMechanism = true;
   SFX.setVol(Save.data.settings.vol);
   Touch.init();
-  $('engVer').textContent = 'BABYLON ' + BABYLON.Engine.Version;
+  $('engVer').textContent = 'BABYLON ' + BABYLON.AbstractEngine.Version;
   $('crt').style.display = Save.data.settings.fps === false ? 'block' : 'block';
   if (ctx.IS_TOUCH) $('touch').classList.add('hidden');
   Boot.run();
@@ -132,5 +142,13 @@ if (import.meta.env.DEV){
   installTelemetry(() => (window as any).__rs);
 }
 
-if (document.readyState === 'loading') addEventListener('DOMContentLoaded', boot);
-else boot();
+function start(){
+  boot().catch(e => {
+    console.error('boot failed:', e);
+    const s = $('bootStat');
+    if (s) s.textContent = 'RENDER DEVICE UNAVAILABLE — ' + ((e && e.message) || e);
+  });
+}
+
+if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start);
+else start();

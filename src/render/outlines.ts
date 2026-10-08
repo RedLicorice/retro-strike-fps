@@ -15,6 +15,16 @@ export const OUTLINE_PX = 1;
 const MASK_RATIO = .4;
 const COLORS = { enemy: new BABYLON.Color3(.95, .12, .1), ally: new BABYLON.Color3(.2, .55, 1) };
 
+/* Two hand-written copies of the same edge pass, one per shader language. A PostProcess built
+   the legacy way defaults to ShaderLanguage.GLSL and stays GLSL on a WebGPU engine
+   (PostProcess sets `_webGPUReady = (shaderLanguage === WGSL)`, and EffectWrapper only
+   promotes to WGSL when that flag is set), so the GLSL source below would still *work* under
+   WebGPU — but only by routing through Babylon's glslang + twgsl translators, which are WASM
+   modules fetched at first compile from https://cdn.babylonjs.com/v<version>/{glslang,twgsl}/.
+   This game is built to be dropped on any static host and played offline, so that fetch is a
+   dependency it should not acquire: supplying WGSL directly keeps the outline pass local.
+   Keep the two in sync; if the WGSL copy ever misbehaves, `BABYLON.PostProcess.ForceGLSL = true`
+   routes WebGPU back through the translated GLSL path. */
 BABYLON.Effect.ShadersStore['rsOutlineFragmentShader'] = `
 precision highp float;
 varying vec2 vUV;
@@ -33,6 +43,38 @@ void main(void){
     if (m.a > .5 && max(m.r, m.b) > .2) o = m;
   }
   gl_FragColor = o.a > .5 ? vec4(o.rgb, c.a) : c;
+}`;
+
+/* WGSL twin of the above, in Babylon's WGSL dialect (`varying`/`uniform`/`var <n>Sampler: sampler`
+   declarations are rewritten into bind groups by Babylon's WGSL processor, uniforms are read via
+   `uniforms.<name>`, and the output is `fragmentOutputs.color`).
+   Two deliberate differences from the GLSL:
+   - textureSampleLevel(..., 0.0) instead of textureSample, because textureSample takes implicit
+     derivatives and WGSL's uniformity analysis rejects it in non-uniform control flow. These are
+     unmipped full-screen targets, so level 0 is what the GLSL sampled anyway.
+   - no early `return` out of the body branch: the taps must stay in uniform control flow, so the
+     ring is always sampled and only the final write branches. */
+BABYLON.ShaderStore.ShadersStoreWGSL['rsOutlineFragmentShader'] = `
+varying vUV: vec2f;
+var textureSamplerSampler: sampler;
+var textureSampler: texture_2d<f32>;
+var maskSamplerSampler: sampler;
+var maskSampler: texture_2d<f32>;
+uniform texel: vec2f;
+uniform radius: f32;
+@fragment
+fn main(input: FragmentInputs)->FragmentOutputs {
+  var c: vec4f = textureSampleLevel(textureSampler, textureSamplerSampler, input.vUV, 0.0);
+  var me: vec4f = textureSampleLevel(maskSampler, maskSamplerSampler, input.vUV, 0.0);
+  var inside: bool = me.a > 0.5 && (max(me.r, me.b) > 0.2 || me.g > 0.5);
+  var o: vec4f = vec4f(0.0);
+  for (var i: i32 = 0; i < 8; i = i + 1){
+    let a: f32 = f32(i) * 0.7853982;
+    let m: vec4f = textureSampleLevel(maskSampler, maskSamplerSampler, input.vUV + vec2f(cos(a), sin(a)) * uniforms.texel * uniforms.radius, 0.0);
+    if (m.a > 0.5 && max(m.r, m.b) > 0.2){ o = m; }
+  }
+  if (inside){ fragmentOutputs.color = c; }
+  else { fragmentOutputs.color = select(c, vec4f(o.rgb, c.a), o.a > 0.5); }
 }`;
 
 type Kind = 'enemy' | 'ally';
@@ -65,7 +107,18 @@ export const Outlines = {
     rtt.skipInitialClear = false;
     sc.customRenderTargets.push(rtt);
     this.rtt = rtt;
-    const pp = new BABYLON.PostProcess('outline', 'rsOutline', ['texel', 'radius'], ['maskSampler'], 1, ctx.cam, BABYLON.Texture.NEAREST_SAMPLINGMODE, ctx.engine);
+    /* options-object form of the same construction, so shaderLanguage can be named rather than
+       counted out as the 16th positional argument; every other value is Babylon's default. */
+    const wgsl = !!ctx.engine && ctx.engine.isWebGPU && !BABYLON.PostProcess.ForceGLSL;
+    const pp = new BABYLON.PostProcess('outline', 'rsOutline', {
+      uniforms: ['texel', 'radius'],
+      samplers: ['maskSampler'],
+      size: 1,
+      camera: ctx.cam,
+      samplingMode: BABYLON.Texture.NEAREST_SAMPLINGMODE,
+      engine: ctx.engine,
+      shaderLanguage: wgsl ? BABYLON.ShaderLanguage.WGSL : BABYLON.ShaderLanguage.GLSL
+    });
     pp.onApply = e => {
       e.setTexture('maskSampler', rtt);
       e.setFloat2('texel', 1 / Math.max(1, rtt.getSize().width), 1 / Math.max(1, rtt.getSize().height));

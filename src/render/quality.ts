@@ -2,6 +2,7 @@ import * as BABYLON from 'babylonjs';
 import { ctx } from '../core/context';
 import { $ } from '../core/dom';
 import { Game } from '../game/index';
+import { rendererName } from './engine';
 import { GFX } from './postfx';
 import { applyFog } from './fog';
 import { MAP } from '../world/map/index';
@@ -23,7 +24,8 @@ export function applyQuality(q){
   applyFog();
   if (typeof GFX !== 'undefined' && GFX.pipe) GFX.rebuild();
   else if (typeof GFX !== 'undefined') GFX.init();
-  $('renName').textContent = (ctx.engine.getCaps().maxTextureSize > 4096 ? 'WEBGL2' : 'WEBGL') + ' • ' + Math.round(100 / ctx.engine.getHardwareScalingLevel()) + '%';
+  /* was inferred from getCaps().maxTextureSize, which reported WEBGL2 on a WebGPU device */
+  $('renName').textContent = rendererName(ctx.engine) + ' • ' + Math.round(100 / ctx.engine.getHardwareScalingLevel()) + '%';
 }
 
 /* Frozen materials never re-check their defines, so after a shadow generator comes or goes they keep a shader

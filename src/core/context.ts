@@ -5,7 +5,9 @@ export type Quality = 'low' | 'med' | 'high';
 /* Runtime handles that are created at boot and swapped at runtime.
    ES module bindings are read-only for importers, so mutable shared state lives here. */
 export const ctx = {
-  engine: null as BABYLON.Engine | null,
+  /* AbstractEngine, not Engine: the renderer is WebGPUEngine when the browser supports it
+     (see render/engine.ts) and plain Engine (WebGL2) otherwise. */
+  engine: null as BABYLON.AbstractEngine | null,
   scene: null as BABYLON.Scene | null,
   canvas: null as HTMLCanvasElement | null,
   cam: null as BABYLON.FreeCamera | null,

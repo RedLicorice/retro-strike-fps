@@ -14,6 +14,10 @@ const P = (k: string, d: string) => q.get(k) || d;
 async function main(){
   const canvas = document.getElementById('c') as HTMLCanvasElement;
   ctx.canvas = canvas;
+  /* Deliberately WebGL, not the WebGPU-first createEngine(): tests/e2e/viewer_shots.py grabs
+     frames with canvas.toDataURL() after stopRenderLoop(), which needs preserveDrawingBuffer —
+     a WebGL-only context attribute. This tool wants byte-stable reference shots, not the
+     fastest backend. */
   ctx.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, antialias: true });
   (window as any).__rs_engine = ctx.engine;
   const scene = ctx.scene = new BABYLON.Scene(ctx.engine);
